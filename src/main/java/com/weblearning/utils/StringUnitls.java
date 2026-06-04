@@ -1,4 +1,4 @@
-package com.demo.demo.utils;
+package com.weblearning.utils;
 
 import java.text.Normalizer;
 import java.util.Locale;
