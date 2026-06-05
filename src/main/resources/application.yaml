@@ -1,7 +1,6 @@
 spring:
   application:
     name: weblearning
-
   datasource:
     url: jdbc:postgresql://localhost:5432/weblearning_db
     username: postgres
