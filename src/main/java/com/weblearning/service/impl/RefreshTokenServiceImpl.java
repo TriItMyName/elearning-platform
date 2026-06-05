@@ -28,10 +28,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     @Transactional
-    public RefreshToken createRefreshToken(String username) {
-        User user = authRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
-        
+    public RefreshToken createRefreshToken(User user) {
         // Xóa refresh token cũ của user nếu có để tránh dư thừa dữ liệu
         refreshTokenRepository.deleteByUser(user);
 
@@ -68,6 +65,13 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         }
 
         return refreshToken;
+    }
+
+    @Override
+    @Transactional
+    public void deleteByToken(String token) {
+        refreshTokenRepository.findByRefreshToken(token)
+                .ifPresent(refreshTokenRepository::delete);
     }
 
 }
