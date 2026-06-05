@@ -1,5 +1,7 @@
 package com.weblearning.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,4 +32,10 @@ public class User {
 
     @Column(nullable = false)
     private boolean isActive;
+
+    @Column
+    private LocalDateTime createdAt;
+
+    @Column
+    private LocalDateTime updatedAt;
 }
