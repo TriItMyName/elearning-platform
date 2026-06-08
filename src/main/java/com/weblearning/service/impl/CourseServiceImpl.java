@@ -1,8 +1,8 @@
 package com.weblearning.service.impl;
 
-import com.weblearning.dto.category.CategoryResponse;
-import com.weblearning.entity.Category;
+import com.weblearning.dto.course.CourseResponse;
 import com.weblearning.entity.Course;
+import com.weblearning.entity.User;
 import com.weblearning.repository.CourseRepository;
 import com.weblearning.service.CourseService;
 import jakarta.persistence.EntityNotFoundException;
@@ -18,32 +18,39 @@ public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
 
-    private CategoryResponse toCategoryResponse(Category category) {
-        CategoryResponse response = new CategoryResponse();
-        response.setId(category.getId());
-        response.setName(category.getName());
-        response.setSlug(category.getSlug());
-        response.setDescription(category.getDescription());
+    private CourseResponse toCourseResponse(Course course) {
+        CourseResponse response = new CourseResponse();
+        response.setId(course.getId());
+        response.setInstructorId(course.getInstructor() != null ? course.getInstructor().getId() : null);
+        response.setCategoryId(course.getCategory() != null ? course.getCategory().getId() : null);
+        response.setTitle(course.getTitle());
+        response.setSlug(course.getSlug());
+        response.setStatus(course.getStatus());
+        response.setCreatedAt(course.getCreatedAt());
+        response.setDescription(course.getDescription());
         return response;
     }
 
     @Override
-    public Course create(Course course) {
-        return courseRepository.save(course);
+    public CourseResponse create(Course course) {
+        return toCourseResponse(courseRepository.save(course));
     }
 
     @Override
-    public Optional<Course> getById(Long id) {
-        return courseRepository.findById(id);
+    public Optional<CourseResponse> getById(Long id) {
+        return courseRepository.findById(id)
+                .map(this::toCourseResponse);
     }
 
     @Override
-    public List<Course> getAll() {
-        return courseRepository.findAll();
+    public List<CourseResponse> getAll() {
+        return courseRepository.findAll().stream()
+                .map(this::toCourseResponse)
+                .toList();
     }
 
     @Override
-    public Course update(Long id, Course course) {
+    public CourseResponse update(Long id, Course course) {
         Course existing = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
         existing.setTitle(course.getTitle());
@@ -53,7 +60,7 @@ public class CourseServiceImpl implements CourseService {
         existing.setInstructor(course.getInstructor());
         existing.setStatus(course.getStatus());
         existing.setCreatedAt(course.getCreatedAt());
-        return courseRepository.save(existing);
+        return toCourseResponse(courseRepository.save(existing));
     }
 
     @Override
@@ -62,5 +69,45 @@ public class CourseServiceImpl implements CourseService {
             throw new EntityNotFoundException("Course not found: " + id);
         }
         courseRepository.deleteById(id);
+    }
+
+    @Override
+    public List<CourseResponse> getCoursesByInstructor(User instructor) {
+        return courseRepository.findByInstructor(instructor).stream()
+                .map(this::toCourseResponse)
+                .toList();
+    }
+
+    @Override
+    public CourseResponse createForInstructor(Course course, User instructor) {
+        course.setInstructor(instructor);
+        return toCourseResponse(courseRepository.save(course));
+    }
+
+    @Override
+    public CourseResponse updateForInstructor(Long id, Course course, User instructor) {
+        Course existing = courseRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
+        if (existing.getInstructor() == null || !existing.getInstructor().getId().equals(instructor.getId())) {
+            throw new SecurityException("You are not the instructor of this course");
+        }
+        existing.setTitle(course.getTitle());
+        existing.setSlug(course.getSlug());
+        existing.setDescription(course.getDescription());
+        existing.setCategory(course.getCategory());
+        existing.setStatus(course.getStatus());
+        existing.setCreatedAt(course.getCreatedAt());
+        return toCourseResponse(courseRepository.save(existing));
+    }
+
+    @Override
+    public void deleteForInstructor(Long id, User instructor) {
+        Course existing = courseRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
+
+        if (existing.getInstructor() == null || !existing.getInstructor().getId().equals(instructor.getId())) {
+            throw new SecurityException("You do not have permission to delete this course");
+        }
+        courseRepository.delete(existing);
     }
 }

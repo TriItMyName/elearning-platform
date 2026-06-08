@@ -27,28 +27,31 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category create(Category category) {
-        return categoryRepository.save(category);
+    public CategoryResponse create(Category category) {
+        return toCategoryResponse(categoryRepository.save(category));
     }
 
     @Override
-    public Optional<Category> getById(Long id) {
-        return categoryRepository.findById(id);
+    public Optional<CategoryResponse> getById(Long id) {
+        return categoryRepository.findById(id)
+                .map(this::toCategoryResponse);
     }
 
     @Override
-    public List<Category> getAll() {
-        return categoryRepository.findAll();
+    public List<CategoryResponse> getAll() {
+        return categoryRepository.findAll().stream()
+                .map(this::toCategoryResponse)
+                .toList();
     }
 
     @Override
-    public Category update(Long id, Category category) {
+    public CategoryResponse update(Long id, Category category) {
         Category existing = categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found: " + id));
         existing.setName(category.getName());
         existing.setSlug(category.getSlug());
         existing.setDescription(category.getDescription());
-        return categoryRepository.save(existing);
+        return toCategoryResponse(categoryRepository.save(existing));
     }
 
     @Override
@@ -60,8 +63,9 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public Category getByName(String name) {
-        return categoryRepository.findByName(name)
+    public CategoryResponse getByName(String name) {
+        Category category = categoryRepository.findByName(name)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found: " + name));
+        return toCategoryResponse(category);
     }
 }

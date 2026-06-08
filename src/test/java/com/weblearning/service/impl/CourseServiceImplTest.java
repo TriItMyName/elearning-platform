@@ -1,5 +1,6 @@
 package com.weblearning.service.impl;
 
+import com.weblearning.dto.course.CourseResponse;
 import com.weblearning.entity.Category;
 import com.weblearning.entity.Course;
 import com.weblearning.entity.User;
@@ -36,7 +37,7 @@ class CourseServiceImplTest {
 
         when(courseRepository.save(course)).thenReturn(course);
 
-        Course result = courseService.create(course);
+        CourseResponse result = courseService.create(course);
 
         assertNotNull(result);
         assertEquals("Java", result.getTitle());
@@ -50,7 +51,7 @@ class CourseServiceImplTest {
 
         when(courseRepository.findById(1L)).thenReturn(Optional.of(course));
 
-        Optional<Course> result = courseService.getById(1L);
+        Optional<CourseResponse> result = courseService.getById(1L);
 
         assertEquals(1L, result.orElseThrow().getId());
     }
@@ -59,7 +60,7 @@ class CourseServiceImplTest {
     void getAllReturnsList() {
         when(courseRepository.findAll()).thenReturn(List.of(new Course()));
 
-        List<Course> result = courseService.getAll();
+        List<CourseResponse> result = courseService.getAll();
 
         assertEquals(1, result.size());
     }
@@ -86,13 +87,13 @@ class CourseServiceImplTest {
         when(courseRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(courseRepository.save(existing)).thenReturn(existing);
 
-        Course result = courseService.update(1L, update);
+        CourseResponse result = courseService.update(1L, update);
 
         assertEquals("Updated", result.getTitle());
         assertEquals("updated", result.getSlug());
         assertEquals("Desc", result.getDescription());
-        assertEquals(category, result.getCategory());
-        assertEquals(instructor, result.getInstructor());
+        assertEquals(category.getId(), result.getCategoryId());
+        assertEquals(instructor.getId(), result.getInstructorId());
         assertEquals(1, result.getStatus());
         assertEquals(update.getCreatedAt(), result.getCreatedAt());
         verify(courseRepository).save(existing);

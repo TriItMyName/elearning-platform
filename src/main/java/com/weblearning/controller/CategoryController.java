@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -30,29 +29,25 @@ public class CategoryController {
         category.setName(request.getName());
         category.setSlug(request.getSlug());
         category.setDescription(request.getDescription());
-        Category created = categoryService.create(category);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoryService.create(category));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponse> getById(@PathVariable Long id) {
         return categoryService.getById(id)
-                .map(category -> ResponseEntity.ok(toResponse(category)))
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAll() {
-        List<CategoryResponse> responses = categoryService.getAll().stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(categoryService.getAll());
     }
 
     @GetMapping("/name/{name}")
     public ResponseEntity<CategoryResponse> getByName(@PathVariable String name) {
         try {
-            return ResponseEntity.ok(toResponse(categoryService.getByName(name)));
+            return ResponseEntity.ok(categoryService.getByName(name));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }
@@ -65,7 +60,7 @@ public class CategoryController {
             category.setName(request.getName());
             category.setSlug(request.getSlug());
             category.setDescription(request.getDescription());
-            return ResponseEntity.ok(toResponse(categoryService.update(id, category)));
+            return ResponseEntity.ok(categoryService.update(id, category));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }
@@ -79,14 +74,5 @@ public class CategoryController {
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    private CategoryResponse toResponse(Category category) {
-        CategoryResponse response = new CategoryResponse();
-        response.setId(category.getId());
-        response.setName(category.getName());
-        response.setSlug(category.getSlug());
-        response.setDescription(category.getDescription());
-        return response;
     }
 }

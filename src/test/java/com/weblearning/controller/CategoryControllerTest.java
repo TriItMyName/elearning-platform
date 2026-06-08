@@ -39,7 +39,7 @@ class CategoryControllerTest {
 
     @Test
     void createReturnsCreated() throws Exception {
-        Category saved = new Category();
+        CategoryResponse saved = new CategoryResponse();
         saved.setId(1L);
         saved.setName("Design");
         saved.setSlug("design");
@@ -69,7 +69,7 @@ class CategoryControllerTest {
 
     @Test
     void getByIdReturnsOk() throws Exception {
-        Category category = new Category();
+        CategoryResponse category = new CategoryResponse();
         category.setId(1L);
         category.setName("Design");
         category.setSlug("design");
@@ -92,7 +92,7 @@ class CategoryControllerTest {
 
     @Test
     void getAllReturnsList() throws Exception {
-        Category category = new Category();
+        CategoryResponse category = new CategoryResponse();
         category.setId(1L);
         category.setName("Design");
         category.setSlug("design");
