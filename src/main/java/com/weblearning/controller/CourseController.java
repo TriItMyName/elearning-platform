@@ -12,6 +12,7 @@ import com.weblearning.service.AuthService;
 import com.weblearning.service.CourseService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,15 +23,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/courses")
+@RequiredArgsConstructor
 public class CourseController {
 
     private final CourseService courseService;
     private final AuthService authService;
-
-    public CourseController(CourseService courseService, AuthService authService) {
-        this.courseService = courseService;
-        this.authService = authService;
-    }
 
     @PostMapping
     public ResponseEntity<CourseResponse> create(@Valid @RequestBody CreateCourseRequest request) {
