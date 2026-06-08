@@ -10,6 +10,8 @@ import com.weblearning.dto.auth.LoginResponse;
 import com.weblearning.dto.auth.RefreshTokenRequest;
 import com.weblearning.dto.auth.RefreshTokenResponse;
 import com.weblearning.dto.auth.RegisterRequest;
+import com.weblearning.dto.teacher.TeacherProfileResponse;
+import com.weblearning.dto.teacher.UpdateTeacherProfileRequest;
 import com.weblearning.entity.RefreshToken;
 import com.weblearning.entity.User;
 import com.weblearning.exception.AlreadyUserException;
@@ -19,6 +21,8 @@ import com.weblearning.service.AuthService;
 import com.weblearning.service.RefreshTokenService;
 
 import lombok.RequiredArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -91,4 +95,38 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenService.deleteByToken(request.getRefreshToken());
     }
 
+    @Override
+    public TeacherProfileResponse getTeacherProfile(String username) {
+        return toTeacherProfileResponse(getUserByUserName(username));
+    }
+
+    @Override
+    @Transactional
+    public TeacherProfileResponse updateTeacherProfile(String username, UpdateTeacherProfileRequest request) {
+        User user = getUserByUserName(username);
+
+        authRepository.findByEmail(request.getEmail())
+                .filter(existing -> !existing.getId().equals(user.getId()))
+                .ifPresent(existing -> {
+                    throw new RuntimeException("Email already exists");
+                });
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return toTeacherProfileResponse(authRepository.save(user));
+    }
+
+    private TeacherProfileResponse toTeacherProfileResponse(User user) {
+        TeacherProfileResponse response = new TeacherProfileResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setFullName(user.getFullName());
+        response.setEmail(user.getEmail());
+        response.setActive(user.isActive());
+        response.setCreatedAt(user.getCreatedAt());
+        response.setUpdatedAt(user.getUpdatedAt());
+        return response;
+    }
 }
