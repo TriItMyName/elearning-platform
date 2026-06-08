@@ -1,19 +1,29 @@
 package com.weblearning.service;
 
+import com.weblearning.dto.course.CourseResponse;
 import com.weblearning.entity.Course;
+import com.weblearning.entity.User;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface CourseService {
-    Course create(Course course);
+    CourseResponse create(Course course);
 
-    Optional<Course> getById(Long id);
+    Optional<CourseResponse> getById(Long id);
 
-    List<Course> getAll();
+    List<CourseResponse> getAll();
 
-    Course update(Long id, Course course);
+    CourseResponse update(Long id, Course course);
 
     void delete(Long id);
+
+    List<CourseResponse> getCoursesByInstructor(User instructor);
+
+    CourseResponse createForInstructor(Course course, User instructor);
+
+    CourseResponse updateForInstructor(Long id, Course course, User instructor);
+
+    void deleteForInstructor(Long id, User instructor);
 }
 

@@ -1,5 +1,6 @@
 package com.weblearning.service.impl;
 
+import com.weblearning.dto.category.CategoryResponse;
 import com.weblearning.entity.Category;
 import com.weblearning.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -34,7 +35,7 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.save(category)).thenReturn(category);
 
-        Category result = categoryService.create(category);
+        CategoryResponse result = categoryService.create(category);
 
         assertNotNull(result);
         assertEquals("Programming", result.getName());
@@ -48,7 +49,7 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
 
-        Optional<Category> result = categoryService.getById(1L);
+        Optional<CategoryResponse> result = categoryService.getById(1L);
 
         assertEquals(1L, result.orElseThrow().getId());
     }
@@ -57,7 +58,7 @@ class CategoryServiceImplTest {
     void getAllReturnsList() {
         when(categoryRepository.findAll()).thenReturn(List.of(new Category()));
 
-        List<Category> result = categoryService.getAll();
+        List<CategoryResponse> result = categoryService.getAll();
 
         assertEquals(1, result.size());
     }
@@ -78,7 +79,7 @@ class CategoryServiceImplTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(categoryRepository.save(existing)).thenReturn(existing);
 
-        Category result = categoryService.update(1L, update);
+        CategoryResponse result = categoryService.update(1L, update);
 
         assertEquals("New", result.getName());
         assertEquals("new", result.getSlug());
@@ -116,7 +117,7 @@ class CategoryServiceImplTest {
 
         when(categoryRepository.findByName("Design")).thenReturn(Optional.of(category));
 
-        Category result = categoryService.getByName("Design");
+        CategoryResponse result = categoryService.getByName("Design");
 
         assertEquals("Design", result.getName());
     }
