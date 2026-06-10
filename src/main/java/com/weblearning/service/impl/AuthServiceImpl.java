@@ -37,13 +37,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResponse login(LoginRequest request) {
         User user = authRepository.findByUsername(request.getUsername())
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> new UserNotFoundException("Invalid credentials"));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new UserNotFoundException();
+            throw new UserNotFoundException("Invalid credentials");
         }
         String accessToken = jwtUtils.generateAccessToken(user.getUsername());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
-        
+
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken.getRefreshToken())
@@ -56,7 +56,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public User register(RegisterRequest request) {
         if (authRepository.existsByUsername(request.getUsername())) {
-            throw new AlreadyUserException();
+            throw new AlreadyUserException("Username already exists");
         }
         User user = User.builder()
                 .username(request.getUsername())
@@ -70,7 +70,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public User getUserByUserName(String username) {
-        return authRepository.findByUsername(username).orElseThrow(UserNotFoundException::new);
+        return authRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
     }
 
     @Override
@@ -79,10 +80,10 @@ public class AuthServiceImpl implements AuthService {
         String requestRefreshToken = request.getRefreshToken();
         RefreshToken token = refreshTokenService.verifyRefreshToken(requestRefreshToken);
         User user = token.getUser();
-        
+
         String newAccessToken = jwtUtils.generateAccessToken(user.getUsername());
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
-        
+
         return RefreshTokenResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken.getRefreshToken())
