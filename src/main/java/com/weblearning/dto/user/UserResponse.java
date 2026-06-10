@@ -1,6 +1,7 @@
 package com.weblearning.dto.user;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import com.weblearning.entity.enums.UserStatus;
 
@@ -22,6 +23,7 @@ public class UserResponse {
     private String email;
     private Boolean isActive;
     private UserStatus status;
+    private Set<String> roles;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

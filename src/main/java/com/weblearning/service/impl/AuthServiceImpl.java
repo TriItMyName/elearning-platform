@@ -23,6 +23,11 @@ import com.weblearning.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import com.weblearning.entity.Role;
+import com.weblearning.entity.enums.UserStatus;
+import com.weblearning.repository.admin.RoleRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
@@ -58,12 +64,21 @@ public class AuthServiceImpl implements AuthService {
         if (authRepository.existsByUsername(request.getUsername())) {
             throw new AlreadyUserException("Username already exists");
         }
+        
+        String requestedRoleName = request.getRole() != null && !request.getRole().trim().isEmpty()
+                ? request.getRole().trim().toUpperCase()
+                : "STUDENT";
+
+        Role role = roleRepository.findByName(requestedRoleName)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + requestedRoleName));
+
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .isActive(true)
+                .status(UserStatus.ACTIVE)
+                .roles(new HashSet<>(Set.of(role)))
                 .build();
         return authRepository.save(user);
     }
@@ -125,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
         response.setUsername(user.getUsername());
         response.setFullName(user.getFullName());
         response.setEmail(user.getEmail());
-        response.setActive(user.isActive());
+        response.setActive(user.getStatus() == UserStatus.ACTIVE);
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
         return response;

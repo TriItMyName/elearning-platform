@@ -1,11 +1,15 @@
 package com.weblearning.service.impl.admin;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
 
 import com.weblearning.repository.admin.UserRepository;
+import com.weblearning.repository.admin.RoleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,6 +21,7 @@ import com.weblearning.dto.user.UpdateUserRequest;
 import com.weblearning.dto.user.UpdateUserStatusRequest;
 import com.weblearning.dto.user.UserResponse;
 import com.weblearning.entity.User;
+import com.weblearning.entity.Role;
 import com.weblearning.entity.enums.UserStatus;
 import com.weblearning.exception.AlreadyUserException;
 import com.weblearning.exception.UserNotFoundException;
@@ -30,6 +35,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
     // Mapping user sang userResponse để tái sử dụng cho các method khác
     private UserResponse mapToUserResponse(User user) {
@@ -38,10 +44,10 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .username(user.getUsername())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
-                .isActive(user.isActive())
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .roles(user.getRoles() != null ? user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()) : Set.of())
                 .build();
     }
 
@@ -62,15 +68,21 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AlreadyUserException("Email already exists");
         }
+
+        String requestedRoleName = request.getRole() != null && !request.getRole().trim().isEmpty()
+                ? request.getRole().trim().toUpperCase()
+                : "STUDENT";
+
+        Role role = roleRepository.findByName(requestedRoleName)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + requestedRoleName));
+
         User user = User.builder()
                 .username(request.getUsername())
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .isActive(true)
                 .status(UserStatus.ACTIVE)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .roles(new HashSet<>(Set.of(role)))
                 .build();
         User savedUser = userRepository.save(user);
 
@@ -84,8 +96,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         User user = findUserById(id);
 
         user.setStatus(UserStatus.DISABLED);
-        user.setActive(false);
-        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 
@@ -133,7 +143,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
         user.setEmail(request.getEmail());
         user.setFullName(request.getFullName());
-        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
         return mapToUserResponse(user);
     }
@@ -145,8 +154,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         User user = findUserById(id);
 
         user.setStatus(request.getStatus());
-        user.setActive(request.getStatus() == UserStatus.ACTIVE);
-        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
         return mapToUserResponse(user);
     }
