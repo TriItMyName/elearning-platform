@@ -9,6 +9,8 @@ import com.weblearning.repository.CourseRepository;
 import com.weblearning.service.ChapterService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -27,6 +29,12 @@ public class ChapterServiceImpl implements ChapterService {
         return chapterRepository.findByCourseIdOrderByOrderIndexAsc(courseId).stream()
                 .map(this::toChapterResponse)
                 .toList();
+    }
+
+    @Override
+    public Page<ChapterResponse> getByCourseId(Long courseId, Pageable pageable) {
+        return chapterRepository.findByCourseId(courseId, pageable)
+                .map(this::toChapterResponse);
     }
 
     @Override

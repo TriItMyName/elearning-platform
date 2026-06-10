@@ -6,6 +6,8 @@ import com.weblearning.repository.CategoryRepository;
 import com.weblearning.service.CategoryService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -42,6 +44,12 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.findAll().stream()
                 .map(this::toCategoryResponse)
                 .toList();
+    }
+
+    @Override
+    public Page<CategoryResponse> getAll(Pageable pageable) {
+        return categoryRepository.findAll(pageable)
+                .map(this::toCategoryResponse);
     }
 
     @Override

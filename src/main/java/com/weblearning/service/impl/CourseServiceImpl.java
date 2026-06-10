@@ -7,6 +7,8 @@ import com.weblearning.repository.CourseRepository;
 import com.weblearning.service.CourseService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -50,6 +52,12 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public Page<CourseResponse> getAll(Pageable pageable) {
+        return courseRepository.findAll(pageable)
+                .map(this::toCourseResponse);
+    }
+
+    @Override
     public CourseResponse update(Long id, Course course) {
         Course existing = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
@@ -76,6 +84,12 @@ public class CourseServiceImpl implements CourseService {
         return courseRepository.findByInstructor(instructor).stream()
                 .map(this::toCourseResponse)
                 .toList();
+    }
+
+    @Override
+    public Page<CourseResponse> getCoursesByInstructor(User instructor, Pageable pageable) {
+        return courseRepository.findByInstructor(instructor, pageable)
+                .map(this::toCourseResponse);
     }
 
     @Override
