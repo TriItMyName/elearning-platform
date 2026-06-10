@@ -1,4 +1,4 @@
-package com.weblearning.dto.teacher;
+package com.weblearning.dto.profile;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeacherProfileResponse {
+public class ProfileResponse {
     private Long id;
     private String username;
     private String fullName;

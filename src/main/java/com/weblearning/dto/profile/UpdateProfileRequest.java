@@ -1,4 +1,4 @@
-package com.weblearning.dto.teacher;
+package com.weblearning.dto.profile;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateTeacherProfileRequest {
+public class UpdateProfileRequest {
     @NotBlank
     @Size(max = 100)
     private String fullName;
