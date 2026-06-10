@@ -11,6 +11,10 @@ import com.weblearning.service.LessonService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -37,14 +41,19 @@ public class LessonController {
     private final AuthService authService;
 
     @GetMapping
-    public ResponseEntity<List<LessonResponse>> getByChapter(
+    public ResponseEntity<Page<LessonResponse>> getByChapter(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
-            Authentication authentication
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderIndex") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
     ) {
         try {
             User instructor = getCurrentUser(authentication);
-            return ResponseEntity.ok(lessonService.getByChapterForInstructor(courseId, chapterId, instructor));
+            Pageable pageable = createPageable(page, size, sortBy, direction);
+            return ResponseEntity.ok(lessonService.getByChapterForInstructor(courseId, chapterId, instructor, pageable));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         } catch (SecurityException ex) {
@@ -191,5 +200,10 @@ public class LessonController {
         lesson.setContent(request.getContent());
         lesson.setOrderIndex(request.getOrderIndex());
         return lesson;
+    }
+
+    private Pageable createPageable(int page, int size, String sortBy, String direction) {
+        Sort sort = Sort.by(Sort.Direction.fromString(direction), sortBy);
+        return PageRequest.of(page, size, sort);
     }
 }

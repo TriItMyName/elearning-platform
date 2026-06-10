@@ -10,6 +10,8 @@ import com.weblearning.service.CloudinaryUploadService;
 import com.weblearning.service.LessonService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,6 +33,13 @@ public class LessonServiceImpl implements LessonService {
         return lessonRepository.findByChapterIdOrderByOrderIndexAsc(chapterId).stream()
                 .map(this::toLessonResponse)
                 .toList();
+    }
+
+    @Override
+    public Page<LessonResponse> getByChapterForInstructor(Long courseId, Long chapterId, User instructor, Pageable pageable) {
+        getOwnedChapter(courseId, chapterId, instructor);
+        return lessonRepository.findByChapterId(chapterId, pageable)
+                .map(this::toLessonResponse);
     }
 
     @Override
