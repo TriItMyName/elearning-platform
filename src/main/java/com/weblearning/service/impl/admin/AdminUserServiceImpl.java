@@ -138,11 +138,18 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User user = findUserById(id);
 
-        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
-            throw new AlreadyUserException("Email already exists");
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            String newEmail = request.getEmail().trim();
+            if (!user.getEmail().equals(newEmail) && userRepository.existsByEmail(newEmail)) {
+                throw new AlreadyUserException("Email already exists");
+            }
+            user.setEmail(newEmail);
         }
-        user.setEmail(request.getEmail());
-        user.setFullName(request.getFullName());
+
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            user.setFullName(request.getFullName().trim());
+        }
+
         userRepository.save(user);
         return mapToUserResponse(user);
     }

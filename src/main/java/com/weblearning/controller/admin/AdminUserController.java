@@ -1,9 +1,13 @@
 package com.weblearning.controller.admin;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,12 +30,15 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
     private final AdminUserService adminUserService;
 
     @GetMapping
-    public ResponseEntity<Page<UserResponse>> getAllUser(@RequestParam(required = false) String keyword,
-            @RequestParam(required = false) UserStatus userStatus, Pageable pageable) {
+    public ResponseEntity<Page<UserResponse>> getAllUser(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UserStatus userStatus,
+            @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(adminUserService.getAllUsers(keyword, userStatus, pageable));
     }
 
