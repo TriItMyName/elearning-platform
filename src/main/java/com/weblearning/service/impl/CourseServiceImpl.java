@@ -7,8 +7,11 @@ import com.weblearning.repository.CourseRepository;
 import com.weblearning.service.CourseService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,20 +41,26 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public Optional<CourseResponse> getById(Long id) {
-        return courseRepository.findById(id)
+        return courseRepository.findByIdAndDeletedFalse(id)
                 .map(this::toCourseResponse);
     }
 
     @Override
     public List<CourseResponse> getAll() {
-        return courseRepository.findAll().stream()
+        return courseRepository.findByDeletedFalse().stream()
                 .map(this::toCourseResponse)
                 .toList();
     }
 
     @Override
+    public Page<CourseResponse> getAll(Pageable pageable) {
+        return courseRepository.findByDeletedFalse(pageable)
+                .map(this::toCourseResponse);
+    }
+
+    @Override
     public CourseResponse update(Long id, Course course) {
-        Course existing = courseRepository.findById(id)
+        Course existing = courseRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
         existing.setTitle(course.getTitle());
         existing.setSlug(course.getSlug());
@@ -65,17 +74,24 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public void delete(Long id) {
-        if (!courseRepository.existsById(id)) {
-            throw new EntityNotFoundException("Course not found: " + id);
-        }
-        courseRepository.deleteById(id);
+        Course existing = courseRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
+        existing.setDeleted(true);
+        existing.setDeletedAt(LocalDateTime.now());
+        courseRepository.save(existing);
     }
 
     @Override
     public List<CourseResponse> getCoursesByInstructor(User instructor) {
-        return courseRepository.findByInstructor(instructor).stream()
+        return courseRepository.findByInstructorAndDeletedFalse(instructor).stream()
                 .map(this::toCourseResponse)
                 .toList();
+    }
+
+    @Override
+    public Page<CourseResponse> getCoursesByInstructor(User instructor, Pageable pageable) {
+        return courseRepository.findByInstructorAndDeletedFalse(instructor, pageable)
+                .map(this::toCourseResponse);
     }
 
     @Override
@@ -86,7 +102,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseResponse updateForInstructor(Long id, Course course, User instructor) {
-        Course existing = courseRepository.findById(id)
+        Course existing = courseRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
         if (existing.getInstructor() == null || !existing.getInstructor().getId().equals(instructor.getId())) {
             throw new SecurityException("You are not the instructor of this course");
@@ -102,12 +118,14 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public void deleteForInstructor(Long id, User instructor) {
-        Course existing = courseRepository.findById(id)
+        Course existing = courseRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
 
         if (existing.getInstructor() == null || !existing.getInstructor().getId().equals(instructor.getId())) {
             throw new SecurityException("You do not have permission to delete this course");
         }
-        courseRepository.delete(existing);
+        existing.setDeleted(true);
+        existing.setDeletedAt(LocalDateTime.now());
+        courseRepository.save(existing);
     }
 }

@@ -17,24 +17,38 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chapters")
+@Table(name = "lessons")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Chapter {
+public class Lesson {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
-    private Course course;
+    @JoinColumn(name = "chapter_id", nullable = false)
+    private Chapter chapter;
 
     @Column(nullable = false, length = 150)
     private String title;
+
+    @Column(nullable = false)
+    private Integer lessonType;
+
+    @Column(length = 500)
+    private String videoUrl;
+
+    @Column(length = 500)
+    private String documentUrl;
+
+    @Column
+    private Integer duration;
+
+    @Column(columnDefinition = "TEXT")
+    private String content;
 
     @Column(nullable = false)
     private Integer orderIndex;

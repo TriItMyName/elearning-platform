@@ -10,8 +10,6 @@ import com.weblearning.dto.auth.LoginResponse;
 import com.weblearning.dto.auth.RefreshTokenRequest;
 import com.weblearning.dto.auth.RefreshTokenResponse;
 import com.weblearning.dto.auth.RegisterRequest;
-import com.weblearning.dto.teacher.TeacherProfileResponse;
-import com.weblearning.dto.teacher.UpdateTeacherProfileRequest;
 import com.weblearning.entity.RefreshToken;
 import com.weblearning.entity.User;
 import com.weblearning.exception.AlreadyUserException;

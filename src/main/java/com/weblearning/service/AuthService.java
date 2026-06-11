@@ -5,8 +5,6 @@ import com.weblearning.dto.auth.LoginResponse;
 import com.weblearning.dto.auth.RefreshTokenRequest;
 import com.weblearning.dto.auth.RefreshTokenResponse;
 import com.weblearning.dto.auth.RegisterRequest;
-import com.weblearning.dto.teacher.TeacherProfileResponse;
-import com.weblearning.dto.teacher.UpdateTeacherProfileRequest;
 import com.weblearning.entity.User;
 
 public interface AuthService {
@@ -19,8 +17,4 @@ public interface AuthService {
     User getUserByUserName(String username);
 
     void logout(RefreshTokenRequest request);
-
-    TeacherProfileResponse getTeacherProfile(String username);
-
-    TeacherProfileResponse updateTeacherProfile(String username, UpdateTeacherProfileRequest request);
 }
