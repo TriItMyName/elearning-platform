@@ -14,6 +14,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "chapters")
 @Data
@@ -35,4 +37,10 @@ public class Chapter {
 
     @Column(nullable = false)
     private Integer orderIndex;
+
+    @Column(nullable = false)
+    private boolean deleted;
+
+    @Column
+    private LocalDateTime deletedAt;
 }

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "categories")
 @Data
@@ -26,4 +28,10 @@ public class Category {
 
     @Column(unique = true, columnDefinition = "varchar(255)")
     private String description;
+
+    @Column(nullable = false)
+    private boolean deleted;
+
+    @Column
+    private LocalDateTime deletedAt;
 }

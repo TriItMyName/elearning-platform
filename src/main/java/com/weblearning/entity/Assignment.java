@@ -41,4 +41,10 @@ public class Assignment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
+
+    @Column(nullable = false)
+    private boolean deleted;
+
+    @Column
+    private LocalDateTime deletedAt;
 }

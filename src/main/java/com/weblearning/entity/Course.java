@@ -43,4 +43,10 @@ public class Course {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private boolean deleted;
+
+    @Column
+    private LocalDateTime deletedAt;
 }

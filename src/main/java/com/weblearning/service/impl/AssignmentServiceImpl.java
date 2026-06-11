@@ -43,7 +43,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     ) {
         getOwnedLesson(courseId, chapterId, lessonId, instructor);
 
-        return assignmentRepository.findByLessonIdOrderByCreatedAtDesc(lessonId)
+        return assignmentRepository.findByLessonIdAndDeletedFalseOrderByCreatedAtDesc(lessonId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -65,8 +65,50 @@ public class AssignmentServiceImpl implements AssignmentService {
         return toResponse(assignmentRepository.save(assignment));
     }
 
+    @Override
+    public AssignmentResponse updateForInstructor(
+            Long courseId,
+            Long chapterId,
+            Long lessonId,
+            Long assignmentId,
+            Assignment assignment,
+            User instructor
+    ) {
+        getOwnedLesson(courseId, chapterId, lessonId, instructor);
+        Assignment existing = getAssignmentInLesson(lessonId, assignmentId);
+
+        existing.setTitle(assignment.getTitle());
+        existing.setDescription(assignment.getDescription());
+        existing.setAttachmentUrl(assignment.getAttachmentUrl());
+        existing.setDeadline(assignment.getDeadline());
+        existing.setMaxScore(assignment.getMaxScore());
+
+        return toResponse(assignmentRepository.save(existing));
+    }
+
+    @Override
+    public void deleteForInstructor(Long courseId, Long chapterId, Long lessonId, Long assignmentId, User instructor) {
+        getOwnedLesson(courseId, chapterId, lessonId, instructor);
+        Assignment assignment = getAssignmentInLesson(lessonId, assignmentId);
+
+        assignment.setDeleted(true);
+        assignment.setDeletedAt(LocalDateTime.now());
+        assignmentRepository.save(assignment);
+    }
+
+    private Assignment getAssignmentInLesson(Long lessonId, Long assignmentId) {
+        Assignment assignment = assignmentRepository.findByIdAndDeletedFalse(assignmentId)
+                .orElseThrow(() -> new EntityNotFoundException("Assignment not found: " + assignmentId));
+
+        if (assignment.getLesson() == null || !assignment.getLesson().getId().equals(lessonId)) {
+            throw new EntityNotFoundException("Assignment not found in lesson: " + lessonId);
+        }
+
+        return assignment;
+    }
+
     private Lesson getOwnedLesson(Long courseId, Long chapterId, Long lessonId, User instructor) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findByIdAndDeletedFalse(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found: " + lessonId));
 
         if (lesson.getChapter() == null || !lesson.getChapter().getId().equals(chapterId)) {

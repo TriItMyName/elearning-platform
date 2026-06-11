@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,14 +27,14 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     public List<ChapterResponse> getByCourseId(Long courseId) {
-        return chapterRepository.findByCourseIdOrderByOrderIndexAsc(courseId).stream()
+        return chapterRepository.findByCourseIdAndDeletedFalseOrderByOrderIndexAsc(courseId).stream()
                 .map(this::toChapterResponse)
                 .toList();
     }
 
     @Override
     public Page<ChapterResponse> getByCourseId(Long courseId, Pageable pageable) {
-        return chapterRepository.findByCourseId(courseId, pageable)
+        return chapterRepository.findByCourseIdAndDeletedFalse(courseId, pageable)
                 .map(this::toChapterResponse);
     }
 
@@ -57,14 +58,16 @@ public class ChapterServiceImpl implements ChapterService {
     public void deleteForInstructor(Long courseId, Long chapterId, User instructor) {
         getOwnedCourse(courseId, instructor);
         Chapter existing = getChapterInCourse(courseId, chapterId);
-        chapterRepository.delete(existing);
+        existing.setDeleted(true);
+        existing.setDeletedAt(LocalDateTime.now());
+        chapterRepository.save(existing);
     }
 
     @Override
     public List<ChapterResponse> reorderForInstructor(Long courseId, List<Long> chapterIds, User instructor) {
         getOwnedCourse(courseId, instructor);
 
-        List<Chapter> chapters = chapterRepository.findByCourseIdOrderByOrderIndexAsc(courseId);
+        List<Chapter> chapters = chapterRepository.findByCourseIdAndDeletedFalseOrderByOrderIndexAsc(courseId);
         Set<Long> idsInCourse = new HashSet<>(chapters.stream().map(Chapter::getId).toList());
 
         if (!idsInCourse.equals(new HashSet<>(chapterIds))) {
@@ -87,7 +90,7 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     private Chapter getChapterInCourse(Long courseId, Long chapterId) {
-        Chapter chapter = chapterRepository.findById(chapterId)
+        Chapter chapter = chapterRepository.findByIdAndDeletedFalse(chapterId)
                 .orElseThrow(() -> new EntityNotFoundException("Chapter not found: " + chapterId));
 
         if (chapter.getCourse() == null || !chapter.getCourse().getId().equals(courseId)) {
@@ -98,7 +101,7 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     private Course getOwnedCourse(Long courseId, User instructor) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdAndDeletedFalse(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));
 
         if (course.getInstructor() == null || !course.getInstructor().getId().equals(instructor.getId())) {
