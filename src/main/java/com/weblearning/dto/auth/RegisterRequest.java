@@ -22,4 +22,6 @@ public class RegisterRequest {
     @NotBlank(message = "Họ tên không được để trống")
     @Size(min = 3, max = 30, message = "Họ tên phải có từ 3 đến 30 ký tự")
     private String fullName;
+
+    private String role;
 }

@@ -12,9 +12,9 @@ public interface AuthService {
 
     LoginResponse login(LoginRequest request);
 
-    User getUserByUserName(String username);
-
     RefreshTokenResponse refreshToken(RefreshTokenRequest request);
+
+    User getUserByUserName(String username);
 
     void logout(RefreshTokenRequest request);
 }

@@ -20,6 +20,13 @@ import com.weblearning.service.RefreshTokenService;
 
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import com.weblearning.entity.Role;
+import com.weblearning.entity.enums.UserStatus;
+import com.weblearning.repository.admin.RoleRepository;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -28,18 +35,19 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
     public LoginResponse login(LoginRequest request) {
         User user = authRepository.findByUsername(request.getUsername())
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> new UserNotFoundException("Invalid credentials"));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new UserNotFoundException();
+            throw new UserNotFoundException("Invalid credentials");
         }
         String accessToken = jwtUtils.generateAccessToken(user.getUsername());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
-        
+
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken.getRefreshToken())
@@ -52,21 +60,31 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public User register(RegisterRequest request) {
         if (authRepository.existsByUsername(request.getUsername())) {
-            throw new AlreadyUserException();
+            throw new AlreadyUserException("Username already exists");
         }
+        
+        String requestedRoleName = request.getRole() != null && !request.getRole().trim().isEmpty()
+                ? request.getRole().trim().toUpperCase()
+                : "STUDENT";
+
+        Role role = roleRepository.findByName(requestedRoleName)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + requestedRoleName));
+
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
-                .isActive(true)
+                .status(UserStatus.ACTIVE)
+                .roles(new HashSet<>(Set.of(role)))
                 .build();
         return authRepository.save(user);
     }
 
     @Override
     public User getUserByUserName(String username) {
-        return authRepository.findByUsername(username).orElseThrow(UserNotFoundException::new);
+        return authRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
     }
 
     @Override
@@ -75,10 +93,10 @@ public class AuthServiceImpl implements AuthService {
         String requestRefreshToken = request.getRefreshToken();
         RefreshToken token = refreshTokenService.verifyRefreshToken(requestRefreshToken);
         User user = token.getUser();
-        
+
         String newAccessToken = jwtUtils.generateAccessToken(user.getUsername());
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
-        
+
         return RefreshTokenResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken.getRefreshToken())
@@ -89,5 +107,40 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(RefreshTokenRequest request) {
         refreshTokenService.deleteByToken(request.getRefreshToken());
+    }
+
+    @Override
+    public TeacherProfileResponse getTeacherProfile(String username) {
+        return toTeacherProfileResponse(getUserByUserName(username));
+    }
+
+    @Override
+    @Transactional
+    public TeacherProfileResponse updateTeacherProfile(String username, UpdateTeacherProfileRequest request) {
+        User user = getUserByUserName(username);
+
+        authRepository.findByEmail(request.getEmail())
+                .filter(existing -> !existing.getId().equals(user.getId()))
+                .ifPresent(existing -> {
+                    throw new RuntimeException("Email already exists");
+                });
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return toTeacherProfileResponse(authRepository.save(user));
+    }
+
+    private TeacherProfileResponse toTeacherProfileResponse(User user) {
+        TeacherProfileResponse response = new TeacherProfileResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setFullName(user.getFullName());
+        response.setEmail(user.getEmail());
+        response.setActive(user.getStatus() == UserStatus.ACTIVE);
+        response.setCreatedAt(user.getCreatedAt());
+        response.setUpdatedAt(user.getUpdatedAt());
+        return response;
     }
 }
