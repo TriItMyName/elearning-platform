@@ -16,4 +16,15 @@ public interface AssignmentService {
             Assignment assignment,
             User instructor
     );
+
+    AssignmentResponse updateForInstructor(
+            Long courseId,
+            Long chapterId,
+            Long lessonId,
+            Long assignmentId,
+            Assignment assignment,
+            User instructor
+    );
+
+    void deleteForInstructor(Long courseId, Long chapterId, Long lessonId, Long assignmentId, User instructor);
 }

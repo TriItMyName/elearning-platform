@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,7 +31,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public List<LessonResponse> getByChapterForInstructor(Long courseId, Long chapterId, User instructor) {
         getOwnedChapter(courseId, chapterId, instructor);
-        return lessonRepository.findByChapterIdOrderByOrderIndexAsc(chapterId).stream()
+        return lessonRepository.findByChapterIdAndDeletedFalseOrderByOrderIndexAsc(chapterId).stream()
                 .map(this::toLessonResponse)
                 .toList();
     }
@@ -38,7 +39,7 @@ public class LessonServiceImpl implements LessonService {
     @Override
     public Page<LessonResponse> getByChapterForInstructor(Long courseId, Long chapterId, User instructor, Pageable pageable) {
         getOwnedChapter(courseId, chapterId, instructor);
-        return lessonRepository.findByChapterId(chapterId, pageable)
+        return lessonRepository.findByChapterIdAndDeletedFalse(chapterId, pageable)
                 .map(this::toLessonResponse);
     }
 
@@ -67,14 +68,16 @@ public class LessonServiceImpl implements LessonService {
     public void deleteForInstructor(Long courseId, Long chapterId, Long lessonId, User instructor) {
         getOwnedChapter(courseId, chapterId, instructor);
         Lesson existing = getLessonInChapter(chapterId, lessonId);
-        lessonRepository.delete(existing);
+        existing.setDeleted(true);
+        existing.setDeletedAt(LocalDateTime.now());
+        lessonRepository.save(existing);
     }
 
     @Override
     public List<LessonResponse> reorderForInstructor(Long courseId, Long chapterId, List<Long> lessonIds, User instructor) {
         getOwnedChapter(courseId, chapterId, instructor);
 
-        List<Lesson> lessons = lessonRepository.findByChapterIdOrderByOrderIndexAsc(chapterId);
+        List<Lesson> lessons = lessonRepository.findByChapterIdAndDeletedFalseOrderByOrderIndexAsc(chapterId);
         Set<Long> idsInChapter = new HashSet<>(lessons.stream().map(Lesson::getId).toList());
 
         if (!idsInChapter.equals(new HashSet<>(lessonIds))) {
@@ -115,7 +118,7 @@ public class LessonServiceImpl implements LessonService {
     }
 
     private Chapter getOwnedChapter(Long courseId, Long chapterId, User instructor) {
-        Chapter chapter = chapterRepository.findById(chapterId)
+        Chapter chapter = chapterRepository.findByIdAndDeletedFalse(chapterId)
                 .orElseThrow(() -> new EntityNotFoundException("Chapter not found: " + chapterId));
 
         if (chapter.getCourse() == null || !chapter.getCourse().getId().equals(courseId)) {
@@ -131,7 +134,7 @@ public class LessonServiceImpl implements LessonService {
     }
 
     private Lesson getLessonInChapter(Long chapterId, Long lessonId) {
-        Lesson lesson = lessonRepository.findById(lessonId)
+        Lesson lesson = lessonRepository.findByIdAndDeletedFalse(lessonId)
                 .orElseThrow(() -> new EntityNotFoundException("Lesson not found: " + lessonId));
 
         if (lesson.getChapter() == null || !lesson.getChapter().getId().equals(chapterId)) {
