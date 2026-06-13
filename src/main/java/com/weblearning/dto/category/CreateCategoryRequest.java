@@ -14,7 +14,6 @@ public class CreateCategoryRequest {
     @Size(max = 100)
     private String name;
 
-    @NotBlank
     @Size(max = 120)
     private String slug;
 

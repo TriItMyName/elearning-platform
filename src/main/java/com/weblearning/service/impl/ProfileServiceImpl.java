@@ -3,6 +3,7 @@ package com.weblearning.service.impl;
 import com.weblearning.dto.profile.ProfileResponse;
 import com.weblearning.dto.profile.UpdateProfileRequest;
 import com.weblearning.entity.User;
+import com.weblearning.entity.enums.UserStatus;
 import com.weblearning.exception.UserNotFoundException;
 import com.weblearning.repository.AuthRepository;
 import com.weblearning.service.ProfileService;
@@ -42,7 +43,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     private User getUserByUsername(String username) {
-        return authRepository.findByUsername(username).orElseThrow(UserNotFoundException::new);
+        return authRepository.findByUsername(username).orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     private ProfileResponse toProfileResponse(User user) {
@@ -51,7 +52,7 @@ public class ProfileServiceImpl implements ProfileService {
         response.setUsername(user.getUsername());
         response.setFullName(user.getFullName());
         response.setEmail(user.getEmail());
-        response.setActive(user.isActive());
+        response.setActive(user.getStatus() == UserStatus.ACTIVE);
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
         return response;

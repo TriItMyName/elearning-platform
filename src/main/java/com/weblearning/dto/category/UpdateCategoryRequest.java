@@ -12,11 +12,9 @@ import lombok.NoArgsConstructor;
 public class UpdateCategoryRequest {
     private Long id;
 
-    @NotBlank
     @Size(max = 100)
     private String name;
 
-    @NotBlank
     @Size(max = 120)
     private String slug;
 

@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class Category {
 
     @Id

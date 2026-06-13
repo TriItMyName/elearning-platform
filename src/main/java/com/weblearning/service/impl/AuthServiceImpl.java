@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         if (authRepository.existsByUsername(request.getUsername())) {
             throw new AlreadyUserException("Username already exists");
         }
-        
+
         String requestedRoleName = request.getRole() != null && !request.getRole().trim().isEmpty()
                 ? request.getRole().trim().toUpperCase()
                 : "STUDENT";
@@ -107,40 +107,5 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(RefreshTokenRequest request) {
         refreshTokenService.deleteByToken(request.getRefreshToken());
-    }
-
-    @Override
-    public TeacherProfileResponse getTeacherProfile(String username) {
-        return toTeacherProfileResponse(getUserByUserName(username));
-    }
-
-    @Override
-    @Transactional
-    public TeacherProfileResponse updateTeacherProfile(String username, UpdateTeacherProfileRequest request) {
-        User user = getUserByUserName(username);
-
-        authRepository.findByEmail(request.getEmail())
-                .filter(existing -> !existing.getId().equals(user.getId()))
-                .ifPresent(existing -> {
-                    throw new RuntimeException("Email already exists");
-                });
-
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setUpdatedAt(LocalDateTime.now());
-
-        return toTeacherProfileResponse(authRepository.save(user));
-    }
-
-    private TeacherProfileResponse toTeacherProfileResponse(User user) {
-        TeacherProfileResponse response = new TeacherProfileResponse();
-        response.setId(user.getId());
-        response.setUsername(user.getUsername());
-        response.setFullName(user.getFullName());
-        response.setEmail(user.getEmail());
-        response.setActive(user.getStatus() == UserStatus.ACTIVE);
-        response.setCreatedAt(user.getCreatedAt());
-        response.setUpdatedAt(user.getUpdatedAt());
-        return response;
     }
 }

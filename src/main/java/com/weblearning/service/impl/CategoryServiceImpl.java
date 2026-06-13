@@ -4,6 +4,7 @@ import com.weblearning.dto.category.CategoryResponse;
 import com.weblearning.entity.Category;
 import com.weblearning.repository.CategoryRepository;
 import com.weblearning.service.CategoryService;
+import com.weblearning.utils.StringUnitls;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryResponse create(Category category) {
+        if (category.getName() != null) {
+            category.setSlug(StringUnitls.toSlug(category.getName()));
+        }
         return toCategoryResponse(categoryRepository.save(category));
     }
 
@@ -57,9 +61,13 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryResponse update(Long id, Category category) {
         Category existing = categoryRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found: " + id));
-        existing.setName(category.getName());
-        existing.setSlug(category.getSlug());
-        existing.setDescription(category.getDescription());
+        if (category.getName() != null) {
+            existing.setName(category.getName());
+            existing.setSlug(StringUnitls.toSlug(category.getName()));
+        }
+        if (category.getDescription() != null) {
+            existing.setDescription(category.getDescription());
+        }
         return toCategoryResponse(categoryRepository.save(existing));
     }
 
