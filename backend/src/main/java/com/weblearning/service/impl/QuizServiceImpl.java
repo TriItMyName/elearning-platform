@@ -18,9 +18,19 @@ import com.weblearning.service.QuizService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +60,53 @@ public class QuizServiceImpl implements QuizService {
         quiz.setDeleted(false);
 
         return toQuizResponse(quizRepository.save(quiz));
+    }
+
+    @Override
+    public QuizResponse importFromDocumentForInstructor(
+            Long courseId,
+            Long chapterId,
+            Long lessonId,
+            MultipartFile file,
+            Integer timeLimit,
+            Float passScore,
+            User instructor
+    ) {
+        Lesson lesson = getOwnedLesson(courseId, chapterId, lessonId, instructor);
+        validateImportFile(file);
+
+        Quiz quiz = new Quiz();
+        quiz.setLesson(lesson);
+        quiz.setTimeLimit(timeLimit);
+        quiz.setPassScore(passScore);
+        quiz.setCreatedAt(LocalDateTime.now());
+        quiz.setDeleted(false);
+        Quiz savedQuiz = quizRepository.save(quiz);
+
+        List<ImportedQuestion> importedQuestions = parseQuestions(extractText(file));
+        for (ImportedQuestion importedQuestion : importedQuestions) {
+            Question question = new Question();
+            question.setQuiz(savedQuiz);
+            question.setContent(importedQuestion.content());
+            question.setScore(importedQuestion.score());
+            question.setOrderIndex(importedQuestion.orderIndex());
+            question.setDeleted(false);
+            Question savedQuestion = questionRepository.save(question);
+
+            List<QuestionOption> options = importedQuestion.options().stream()
+                    .map(importedOption -> {
+                        QuestionOption option = new QuestionOption();
+                        option.setQuestion(savedQuestion);
+                        option.setContent(importedOption.content());
+                        option.setIsCorrect(importedOption.correct());
+                        option.setDeleted(false);
+                        return option;
+                    })
+                    .toList();
+            questionOptionRepository.saveAll(options);
+        }
+
+        return toQuizResponse(savedQuiz);
     }
 
     @Override
@@ -178,6 +235,200 @@ public class QuizServiceImpl implements QuizService {
             option.setDeletedAt(LocalDateTime.now());
         });
         questionOptionRepository.saveAll(options);
+    }
+
+    private void validateImportFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is required");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            throw new IllegalArgumentException("File name is required");
+        }
+
+        String lowerFilename = filename.toLowerCase(Locale.ROOT);
+        if (!lowerFilename.endsWith(".docx") && !lowerFilename.endsWith(".txt")) {
+            throw new IllegalArgumentException("Quiz import file must be .docx or .txt");
+        }
+    }
+
+    private String extractText(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+        if (filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".txt")) {
+            try {
+                return new String(file.getBytes(), StandardCharsets.UTF_8);
+            } catch (IOException ex) {
+                throw new RuntimeException("Could not read uploaded file", ex);
+            }
+        }
+
+        try (ZipInputStream zipInputStream = new ZipInputStream(file.getInputStream())) {
+            ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                if ("word/document.xml".equals(entry.getName())) {
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    zipInputStream.transferTo(outputStream);
+                    return toPlainText(outputStream.toString(StandardCharsets.UTF_8));
+                }
+            }
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not read uploaded file", ex);
+        }
+
+        throw new IllegalArgumentException("Could not read document content");
+    }
+
+    private String toPlainText(String xml) {
+        String withLineBreaks = xml
+                .replaceAll("</w:p>", "\n")
+                .replaceAll("</w:tr>", "\n")
+                .replaceAll("</w:tc>", "\t");
+        String withoutTags = withLineBreaks.replaceAll("<[^>]+>", "");
+        return withoutTags
+                .replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace('\t', ' ')
+                .trim();
+    }
+
+    private List<ImportedQuestion> parseQuestions(String text) {
+        List<ImportedQuestion> questions = new ArrayList<>();
+        ImportedQuestionBuilder current = null;
+        int orderIndex = 1;
+
+        for (String rawLine : text.split("\\R")) {
+            String line = rawLine.trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+
+            Matcher numberedQuestionMatcher = Pattern.compile("^\\d+\\s*[\\).:-]\\s*(.+)$").matcher(line);
+            if (numberedQuestionMatcher.matches()) {
+                if (current != null) {
+                    questions.add(current.build());
+                }
+                current = new ImportedQuestionBuilder(orderIndex++, numberedQuestionMatcher.group(1).trim());
+                continue;
+            }
+
+            if (startsWithAny(line, "Q:", "QUESTION:", "Câu hỏi:", "Cau hoi:")) {
+                if (current != null) {
+                    questions.add(current.build());
+                }
+                current = new ImportedQuestionBuilder(orderIndex++, removePrefix(line));
+                continue;
+            }
+
+            if (current == null) {
+                continue;
+            }
+
+            if (startsWithAny(line, "SCORE:", "Điểm:", "Diem:")) {
+                current.score(parseScore(removePrefix(line)));
+                continue;
+            }
+
+            if (startsWithAny(line, "ANSWER:", "Đáp án:", "Dap an:")) {
+                current.correctAnswer(removePrefix(line));
+                continue;
+            }
+
+            Matcher optionMatcher = Pattern.compile("^([A-Za-z])\\s*[\\).:-]\\s*(.+)$").matcher(line);
+            if (optionMatcher.matches()) {
+                current.option(optionMatcher.group(1), optionMatcher.group(2));
+            }
+        }
+
+        if (current != null) {
+            questions.add(current.build());
+        }
+
+        if (questions.isEmpty()) {
+            throw new IllegalArgumentException("Document must contain at least one question");
+        }
+
+        return questions;
+    }
+
+    private boolean startsWithAny(String value, String... prefixes) {
+        String lowerValue = value.toLowerCase(Locale.ROOT);
+        for (String prefix : prefixes) {
+            if (lowerValue.startsWith(prefix.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String removePrefix(String value) {
+        int index = value.indexOf(':');
+        return index >= 0 ? value.substring(index + 1).trim() : value.trim();
+    }
+
+    private Float parseScore(String value) {
+        try {
+            return Float.parseFloat(value.trim());
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Question score must be a number");
+        }
+    }
+
+    private record ImportedQuestion(String content, Float score, Integer orderIndex, List<ImportedOption> options) {
+    }
+
+    private record ImportedOption(String label, String content, boolean correct) {
+    }
+
+    private static class ImportedQuestionBuilder {
+        private final Integer orderIndex;
+        private final String content;
+        private final List<ImportedOption> options = new ArrayList<>();
+        private Float score = 1F;
+        private String correctAnswer;
+
+        private ImportedQuestionBuilder(Integer orderIndex, String content) {
+            this.orderIndex = orderIndex;
+            this.content = content;
+        }
+
+        private void option(String label, String content) {
+            options.add(new ImportedOption(label.toUpperCase(Locale.ROOT), content, false));
+        }
+
+        private void score(Float score) {
+            this.score = score;
+        }
+
+        private void correctAnswer(String correctAnswer) {
+            this.correctAnswer = correctAnswer.trim().toUpperCase(Locale.ROOT);
+        }
+
+        private ImportedQuestion build() {
+            if (content == null || content.isBlank()) {
+                throw new IllegalArgumentException("Question content is required");
+            }
+            if (options.size() < 2) {
+                throw new IllegalArgumentException("Each question must have at least two options");
+            }
+            if (correctAnswer == null || correctAnswer.isBlank()) {
+                throw new IllegalArgumentException("Each question must have an answer");
+            }
+
+            List<ImportedOption> resolvedOptions = options.stream()
+                    .map(option -> new ImportedOption(option.label(), option.content(), correctAnswer.contains(option.label())))
+                    .toList();
+
+            boolean hasCorrectAnswer = resolvedOptions.stream().anyMatch(ImportedOption::correct);
+            if (!hasCorrectAnswer) {
+                throw new IllegalArgumentException("Answer does not match any option");
+            }
+
+            return new ImportedQuestion(content, score, orderIndex, resolvedOptions);
+        }
     }
 
     private Quiz getQuizInLesson(Long lessonId, Long quizId) {

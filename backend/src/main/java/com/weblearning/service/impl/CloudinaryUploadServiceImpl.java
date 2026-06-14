@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -18,12 +19,8 @@ public class CloudinaryUploadServiceImpl implements CloudinaryUploadService {
 
     @Override
     public String uploadVideo(MultipartFile file, Long lessonId) {
+        validateExtension(file, ".mp4", "Video file must be .mp4");
         return upload(file, lessonId, "video", "videos");
-    }
-
-    @Override
-    public String uploadDocument(MultipartFile file, Long lessonId) {
-        return upload(file, lessonId, "raw", "documents");
     }
 
     private String upload(MultipartFile file, Long lessonId, String resourceType, String folderName) {
@@ -43,6 +40,17 @@ public class CloudinaryUploadServiceImpl implements CloudinaryUploadService {
             return secureUrl.toString();
         } catch (IOException ex) {
             throw new RuntimeException("Could not read uploaded file", ex);
+        }
+    }
+
+    private void validateExtension(MultipartFile file, String extension, String message) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is required");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase(Locale.ROOT).endsWith(extension)) {
+            throw new IllegalArgumentException(message);
         }
     }
 }

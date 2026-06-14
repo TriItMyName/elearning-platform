@@ -17,6 +17,8 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findByChapterIdAndDeletedFalseOrderByOrderIndexAsc(Long chapterId);
 
+    List<Lesson> findByChapterCourseIdAndDeletedFalseOrderByChapterOrderIndexAscOrderIndexAsc(Long courseId);
+
     Page<Lesson> findByChapterIdAndDeletedFalse(Long chapterId, Pageable pageable);
 
     Optional<Lesson> findByIdAndDeletedFalse(Long id);

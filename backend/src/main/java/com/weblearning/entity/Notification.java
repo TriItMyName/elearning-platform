@@ -17,46 +17,37 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "assignment_submissions")
+@Table(name = "notifications")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AssignmentSubmission {
+public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignment_id", nullable = false)
-    private Assignment assignment;
+    @JoinColumn(name = "sender_id", nullable = false)
+    private User sender;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
+    @JoinColumn(name = "receiver_id", nullable = false)
+    private User receiver;
 
-    @Column(columnDefinition = "TEXT")
-    private String content;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
 
-    @Column(length = 500)
-    private String attachmentUrl;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String message;
 
     @Column(nullable = false)
-    private LocalDateTime submittedAt;
+    private Boolean isRead;
 
-    @Column
-    private Integer score;
-
-    @Column(columnDefinition = "TEXT")
-    private String feedback;
-
-    @Column
-    private LocalDateTime gradedAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "graded_by")
-    private User gradedBy;
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private boolean deleted;
