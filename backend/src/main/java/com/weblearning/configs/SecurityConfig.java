@@ -36,11 +36,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/refresh",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html")
-                        .permitAll() // mở Swagger và API Auth
+                        .permitAll() // mở Swagger và các API Auth public
                         .anyRequest().authenticated() // còn lại vẫn cần login
                 );
 
