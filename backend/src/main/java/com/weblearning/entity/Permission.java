@@ -31,7 +31,7 @@ public class Permission {
     @Column(unique = true, nullable = false, length = 50)
     private String name;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String description;
 
     @Builder.Default

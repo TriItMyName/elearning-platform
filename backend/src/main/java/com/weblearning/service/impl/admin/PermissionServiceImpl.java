@@ -33,11 +33,12 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional
     public PermissionResponse createPermission(CreatePermissionRequest request) {
-        if (permissionRepository.existsByName(request.getName().toUpperCase())) {
-            throw new IllegalArgumentException("Permission already exists with name: " + request.getName());
+        String permissionName = request.getName().trim().toUpperCase();
+        if (permissionRepository.existsByName(permissionName)) {
+            throw new IllegalArgumentException("Permission already exists with name: " + permissionName);
         }
         Permission permission = Permission.builder()
-                .name(request.getName().toUpperCase())
+                .name(permissionName)
                 .description(request.getDescription())
                 .build();
         return mapToPermissionResponse(permissionRepository.save(permission));
@@ -49,7 +50,7 @@ public class PermissionServiceImpl implements PermissionService {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Permission not found with id: " + id));
         
-        String newName = request.getName().toUpperCase();
+        String newName = request.getName().trim().toUpperCase();
         if (!permission.getName().equalsIgnoreCase(newName) && permissionRepository.existsByName(newName)) {
             throw new IllegalArgumentException("Permission already exists with name: " + newName);
         }

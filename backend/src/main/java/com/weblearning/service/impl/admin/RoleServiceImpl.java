@@ -71,11 +71,12 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public RoleResponse createRole(CreateRoleRequest request) {
-        if (roleRepository.existsByName(request.getName().toUpperCase())) {
-            throw new IllegalArgumentException("Role already exists with name: " + request.getName());
+        String roleName = request.getName().trim().toUpperCase();
+        if (roleRepository.existsByName(roleName)) {
+            throw new IllegalArgumentException("Role already exists with name: " + roleName);
         }
         Role role = Role.builder()
-                .name(request.getName().toUpperCase())
+                .name(roleName)
                 .build();
         return mapToRoleResponse(roleRepository.save(role));
     }
@@ -86,7 +87,7 @@ public class RoleServiceImpl implements RoleService {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + id));
         
-        String newName = request.getName().toUpperCase();
+        String newName = request.getName().trim().toUpperCase();
         if (!role.getName().equalsIgnoreCase(newName) && roleRepository.existsByName(newName)) {
             throw new IllegalArgumentException("Role already exists with name: " + newName);
         }

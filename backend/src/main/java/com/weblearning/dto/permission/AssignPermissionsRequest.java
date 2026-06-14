@@ -2,6 +2,7 @@ package com.weblearning.dto.permission;
 
 import java.util.Set;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,5 +15,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignPermissionsRequest {
+    @NotEmpty(message = "Danh sách permission IDs không được để trống")
     private Set<Long> permissionIds;
 }

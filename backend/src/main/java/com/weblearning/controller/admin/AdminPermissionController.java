@@ -19,6 +19,7 @@ import com.weblearning.dto.permission.PermissionResponse;
 import com.weblearning.dto.permission.UpdatePermissionRequest;
 import com.weblearning.service.admin.PermissionService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -35,12 +36,12 @@ public class AdminPermissionController {
     }
 
     @PostMapping
-    public ResponseEntity<PermissionResponse> createPermission(@RequestBody CreatePermissionRequest request) {
+    public ResponseEntity<PermissionResponse> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(permissionService.createPermission(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PermissionResponse> updatePermission(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
+    public ResponseEntity<PermissionResponse> updatePermission(@PathVariable Long id, @Valid @RequestBody UpdatePermissionRequest request) {
         return ResponseEntity.ok(permissionService.updatePermission(id, request));
     }
 

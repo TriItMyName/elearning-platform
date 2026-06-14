@@ -16,8 +16,8 @@ import com.weblearning.repository.AuthRepository;
 
 import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -31,13 +31,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = authRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
 
-        List<GrantedAuthority> authorities = new ArrayList<>();
+        Set<GrantedAuthority> authorities = new HashSet<>();
         if (user.getRoles() != null) {
             for (Role role : user.getRoles()) {
-                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName().toUpperCase()));
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName().trim().toUpperCase()));
                 if (role.getPermissions() != null) {
                     for (Permission permission : role.getPermissions()) {
-                        authorities.add(new SimpleGrantedAuthority(permission.getName().toUpperCase()));
+                        authorities.add(new SimpleGrantedAuthority(permission.getName().trim().toUpperCase()));
                     }
                 }
             }

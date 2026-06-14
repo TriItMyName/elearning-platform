@@ -14,8 +14,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CreatePermissionRequest {
 
-    @NotBlank
+    @NotBlank(message = "Tên permission không được để trống")
     private String name;
 
+    @NotBlank(message = "Description không được để trống")
     private String description;
 }
