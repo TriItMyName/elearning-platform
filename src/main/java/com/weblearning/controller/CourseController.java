@@ -4,14 +4,19 @@ import com.weblearning.dto.course.CourseResponse;
 import com.weblearning.dto.course.EnrollmentResponse;
 import com.weblearning.dto.course.CreateCourseRequest;
 import com.weblearning.dto.course.CreateTeacherCourseRequest;
+import com.weblearning.dto.course.StudentLearningProgressResponse;
 import com.weblearning.dto.course.UpdateCourseRequest;
 import com.weblearning.dto.course.UpdateTeacherCourseRequest;
+import com.weblearning.dto.notification.CreateNotificationRequest;
+import com.weblearning.dto.notification.NotificationResponse;
 import com.weblearning.entity.Category;
 import com.weblearning.entity.Course;
 import com.weblearning.entity.User;
 import com.weblearning.service.AuthService;
 import com.weblearning.service.CourseService;
 import com.weblearning.service.EnrollmentService;
+import com.weblearning.service.LearningProgressService;
+import com.weblearning.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +39,8 @@ public class CourseController {
 
     private final CourseService courseService;
     private final EnrollmentService enrollmentService;
+    private final LearningProgressService learningProgressService;
+    private final NotificationService notificationService;
     private final AuthService authService;
 
     @PostMapping
@@ -131,6 +138,57 @@ public class CourseController {
         try {
             User instructor = getCurrentUser(authentication);
             return ResponseEntity.ok(enrollmentService.getStudentsForInstructor(id, instructor));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/teacher/{id}/students/{studentId}/progress")
+    public ResponseEntity<StudentLearningProgressResponse> getStudentProgressByTeacher(
+            @PathVariable Long id,
+            @PathVariable Long studentId,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.ok(learningProgressService.getStudentProgressForInstructor(id, studentId, instructor));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PostMapping("/teacher/{id}/notifications")
+    public ResponseEntity<List<NotificationResponse>> sendNotificationToCourseStudents(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateNotificationRequest request,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(notificationService.sendToCourseStudentsForInstructor(id, request.getMessage(), instructor));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PostMapping("/teacher/{id}/students/{studentId}/notifications")
+    public ResponseEntity<NotificationResponse> sendNotificationToStudent(
+            @PathVariable Long id,
+            @PathVariable Long studentId,
+            @Valid @RequestBody CreateNotificationRequest request,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(notificationService.sendToStudentForInstructor(id, studentId, request.getMessage(), instructor));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         } catch (SecurityException ex) {
