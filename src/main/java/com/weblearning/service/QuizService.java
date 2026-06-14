@@ -6,6 +6,7 @@ import com.weblearning.entity.Question;
 import com.weblearning.entity.QuestionOption;
 import com.weblearning.entity.Quiz;
 import com.weblearning.entity.User;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -13,6 +14,16 @@ public interface QuizService {
     List<QuizResponse> getByLessonForInstructor(Long courseId, Long chapterId, Long lessonId, User instructor);
 
     QuizResponse createForInstructor(Long courseId, Long chapterId, Long lessonId, Quiz quiz, User instructor);
+
+    QuizResponse importFromDocumentForInstructor(
+            Long courseId,
+            Long chapterId,
+            Long lessonId,
+            MultipartFile file,
+            Integer timeLimit,
+            Float passScore,
+            User instructor
+    );
 
     QuizResponse updateForInstructor(Long courseId, Long chapterId, Long lessonId, Long quizId, Quiz quiz, User instructor);
 

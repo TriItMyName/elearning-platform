@@ -154,26 +154,6 @@ public class LessonController {
         }
     }
 
-    @PostMapping("/{lessonId}/upload-document")
-    public ResponseEntity<LessonResponse> uploadDocument(
-            @PathVariable Long courseId,
-            @PathVariable Long chapterId,
-            @PathVariable Long lessonId,
-            @RequestParam("file") MultipartFile file,
-            Authentication authentication
-    ) {
-        try {
-            User instructor = getCurrentUser(authentication);
-            return ResponseEntity.ok(lessonService.uploadDocumentForInstructor(courseId, chapterId, lessonId, file, instructor));
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
     private User getCurrentUser(Authentication authentication) {
         return authService.getUserByUserName(authentication.getName());
     }
