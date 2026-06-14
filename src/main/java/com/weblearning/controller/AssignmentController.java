@@ -1,11 +1,14 @@
 package com.weblearning.controller;
 
+import com.weblearning.dto.assignment.AssignmentSubmissionResponse;
 import com.weblearning.dto.assignment.AssignmentResponse;
 import com.weblearning.dto.assignment.CreateAssignmentRequest;
+import com.weblearning.dto.assignment.GradeAssignmentSubmissionRequest;
 import com.weblearning.dto.assignment.UpdateAssignmentRequest;
 import com.weblearning.entity.Assignment;
 import com.weblearning.entity.User;
 import com.weblearning.service.AssignmentService;
+import com.weblearning.service.AssignmentSubmissionService;
 import com.weblearning.service.AuthService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -23,6 +26,7 @@ import java.util.List;
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
+    private final AssignmentSubmissionService assignmentSubmissionService;
     private final AuthService authService;
 
     @GetMapping
@@ -105,6 +109,93 @@ public class AssignmentController {
             return ResponseEntity.notFound().build();
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/{assignmentId}/submissions")
+    public ResponseEntity<List<AssignmentSubmissionResponse>> getSubmissions(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            @PathVariable Long lessonId,
+            @PathVariable Long assignmentId,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.ok(
+                    assignmentSubmissionService.getSubmissionsForInstructor(
+                            courseId,
+                            chapterId,
+                            lessonId,
+                            assignmentId,
+                            instructor
+                    )
+            );
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/{assignmentId}/submissions/{submissionId}")
+    public ResponseEntity<AssignmentSubmissionResponse> getSubmission(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            @PathVariable Long lessonId,
+            @PathVariable Long assignmentId,
+            @PathVariable Long submissionId,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.ok(
+                    assignmentSubmissionService.getSubmissionForInstructor(
+                            courseId,
+                            chapterId,
+                            lessonId,
+                            assignmentId,
+                            submissionId,
+                            instructor
+                    )
+            );
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PutMapping("/{assignmentId}/submissions/{submissionId}/grade")
+    public ResponseEntity<AssignmentSubmissionResponse> gradeSubmission(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            @PathVariable Long lessonId,
+            @PathVariable Long assignmentId,
+            @PathVariable Long submissionId,
+            @Valid @RequestBody GradeAssignmentSubmissionRequest request,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.ok(
+                    assignmentSubmissionService.gradeForInstructor(
+                            courseId,
+                            chapterId,
+                            lessonId,
+                            assignmentId,
+                            submissionId,
+                            request.getScore(),
+                            request.getFeedback(),
+                            instructor
+                    )
+            );
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
