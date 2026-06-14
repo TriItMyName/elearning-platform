@@ -10,12 +10,14 @@ import com.weblearning.dto.auth.LoginResponse;
 import com.weblearning.dto.auth.RefreshTokenRequest;
 import com.weblearning.dto.auth.RefreshTokenResponse;
 import com.weblearning.dto.auth.RegisterRequest;
+import com.weblearning.entity.Permission;
 import com.weblearning.entity.RefreshToken;
 import com.weblearning.entity.User;
 import com.weblearning.exception.AlreadyUserException;
 import com.weblearning.exception.UserNotFoundException;
 import com.weblearning.repository.AuthRepository;
 import com.weblearning.service.AuthService;
+import com.weblearning.dto.auth.CurrentUserResponse;
 import com.weblearning.service.RefreshTokenService;
 
 import lombok.RequiredArgsConstructor;
@@ -107,5 +109,26 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(RefreshTokenRequest request) {
         refreshTokenService.deleteByToken(request.getRefreshToken());
+    }
+
+    @Override
+    public CurrentUserResponse getCurrentUser(String username) {
+        User user = authRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return CurrentUserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .roles(user.getRoles().stream().map(Role::getName).toList())
+                .permissions(
+                        user.getRoles()
+                                .stream()
+                                .flatMap(role -> role.getPermissions().stream())
+                                .map(Permission::getName)
+                                .distinct()
+                                .toList())
+                .build();
     }
 }
