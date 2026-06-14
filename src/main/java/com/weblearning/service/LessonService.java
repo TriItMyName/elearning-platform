@@ -23,6 +23,4 @@ public interface LessonService {
     List<LessonResponse> reorderForInstructor(Long courseId, Long chapterId, List<Long> lessonIds, User instructor);
 
     LessonResponse uploadVideoForInstructor(Long courseId, Long chapterId, Long lessonId, MultipartFile file, User instructor);
-
-    LessonResponse uploadDocumentForInstructor(Long courseId, Long chapterId, Long lessonId, MultipartFile file, User instructor);
 }

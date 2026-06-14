@@ -26,7 +26,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -71,6 +73,37 @@ public class QuizController {
             return ResponseEntity.notFound().build();
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PostMapping("/import-document")
+    public ResponseEntity<QuizResponse> importFromDocument(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            @PathVariable Long lessonId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam Integer timeLimit,
+            @RequestParam Float passScore,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(quizService.importFromDocumentForInstructor(
+                            courseId,
+                            chapterId,
+                            lessonId,
+                            file,
+                            timeLimit,
+                            passScore,
+                            instructor
+                    ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
         }
     }
 

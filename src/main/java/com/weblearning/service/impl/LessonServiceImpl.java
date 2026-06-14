@@ -108,15 +108,6 @@ public class LessonServiceImpl implements LessonService {
         return toLessonResponse(lessonRepository.save(lesson));
     }
 
-    @Override
-    public LessonResponse uploadDocumentForInstructor(Long courseId, Long chapterId, Long lessonId, MultipartFile file, User instructor) {
-        getOwnedChapter(courseId, chapterId, instructor);
-        Lesson lesson = getLessonInChapter(chapterId, lessonId);
-        String documentUrl = cloudinaryUploadService.uploadDocument(file, lessonId);
-        lesson.setDocumentUrl(documentUrl);
-        return toLessonResponse(lessonRepository.save(lesson));
-    }
-
     private Chapter getOwnedChapter(Long courseId, Long chapterId, User instructor) {
         Chapter chapter = chapterRepository.findByIdAndDeletedFalse(chapterId)
                 .orElseThrow(() -> new EntityNotFoundException("Chapter not found: " + chapterId));
