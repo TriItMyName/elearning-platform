@@ -174,4 +174,54 @@ class PermissionServiceImplTest {
         assertThrows(ResourceNotFoundException.class, () -> permissionService.deletePermission(1L));
         verify(permissionRepository, never()).delete(any(Permission.class));
     }
+
+    @Test
+    void createPermissionNormalizesName() {
+        CreatePermissionRequest request = CreatePermissionRequest.builder()
+                .name("  course_read  ")
+                .description("Read Course")
+                .build();
+        Permission permission = Permission.builder()
+                .id(1L)
+                .name("COURSE_READ")
+                .description("Read Course")
+                .build();
+
+        when(permissionRepository.existsByName("COURSE_READ")).thenReturn(false);
+        when(permissionRepository.save(any(Permission.class))).thenReturn(permission);
+
+        PermissionResponse result = permissionService.createPermission(request);
+
+        assertNotNull(result);
+        assertEquals("COURSE_READ", result.getName());
+        verify(permissionRepository).save(any(Permission.class));
+    }
+
+    @Test
+    void updatePermissionNormalizesName() {
+        UpdatePermissionRequest request = UpdatePermissionRequest.builder()
+                .name("  course_write  ")
+                .description("Write Course")
+                .build();
+        Permission existingPermission = Permission.builder()
+                .id(1L)
+                .name("COURSE_READ")
+                .description("Read Course")
+                .build();
+        Permission updatedPermission = Permission.builder()
+                .id(1L)
+                .name("COURSE_WRITE")
+                .description("Write Course")
+                .build();
+
+        when(permissionRepository.findById(1L)).thenReturn(Optional.of(existingPermission));
+        when(permissionRepository.existsByName("COURSE_WRITE")).thenReturn(false);
+        when(permissionRepository.save(any(Permission.class))).thenReturn(updatedPermission);
+
+        PermissionResponse result = permissionService.updatePermission(1L, request);
+
+        assertNotNull(result);
+        assertEquals("COURSE_WRITE", result.getName());
+        verify(permissionRepository).save(any(Permission.class));
+    }
 }

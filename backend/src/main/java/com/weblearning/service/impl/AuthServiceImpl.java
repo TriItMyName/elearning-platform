@@ -54,7 +54,13 @@ public class AuthServiceImpl implements AuthService {
         if (user.getStatus() == UserStatus.DISABLED) {
             throw new AccountStatusException("Tài khoản của bạn đã bị vô hiệu hóa");
         }
-        String accessToken = jwtUtils.generateAccessToken(user.getUsername());
+        java.util.List<String> roles = user.getRoles().stream().map(Role::getName).toList();
+        java.util.List<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+        String accessToken = jwtUtils.generateAccessToken(user.getUsername(), roles, permissions);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return LoginResponse.builder()
@@ -103,7 +109,20 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken token = refreshTokenService.verifyRefreshToken(requestRefreshToken);
         User user = token.getUser();
 
-        String newAccessToken = jwtUtils.generateAccessToken(user.getUsername());
+        if (user.getStatus() == UserStatus.LOCKED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị khóa");
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị vô hiệu hóa");
+        }
+
+        java.util.List<String> roles = user.getRoles().stream().map(Role::getName).toList();
+        java.util.List<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+        String newAccessToken = jwtUtils.generateAccessToken(user.getUsername(), roles, permissions);
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
 
         return RefreshTokenResponse.builder()

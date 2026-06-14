@@ -21,6 +21,7 @@ import com.weblearning.dto.role.RoleResponse;
 import com.weblearning.dto.role.UpdateRoleRequest;
 import com.weblearning.service.admin.RoleService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -37,12 +38,12 @@ public class AdminRoleController {
     }
 
     @PostMapping
-    public ResponseEntity<RoleResponse> createRole(@RequestBody CreateRoleRequest request) {
+    public ResponseEntity<RoleResponse> createRole(@Valid @RequestBody CreateRoleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(roleService.createRole(request));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RoleResponse> updateRole(@PathVariable Long id, @RequestBody UpdateRoleRequest request) {
+    public ResponseEntity<RoleResponse> updateRole(@PathVariable Long id, @Valid @RequestBody UpdateRoleRequest request) {
         return ResponseEntity.ok(roleService.updateRole(id, request));
     }
 
@@ -54,13 +55,13 @@ public class AdminRoleController {
 
     @PostMapping("/{id}/permissions")
     public ResponseEntity<Void> assignPermissionsToRole(@PathVariable Long id,
-            @RequestBody AssignPermissionsRequest request) {
+            @Valid @RequestBody AssignPermissionsRequest request) {
         roleService.assignPermissionsToRole(id, request);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/users/{userId}")
-    public ResponseEntity<Void> assignRolesToUser(@PathVariable Long userId, @RequestBody AssignRolesRequest request) {
+    public ResponseEntity<Void> assignRolesToUser(@PathVariable Long userId, @Valid @RequestBody AssignRolesRequest request) {
         roleService.assignRolesToUser(userId, request);
         return ResponseEntity.ok().build();
     }
