@@ -34,9 +34,11 @@ public class JwtUtils {
     }
 
     // Tạo access token
-    public String generateAccessToken(String username) {
+    public String generateAccessToken(String username, java.util.List<String> roles, java.util.List<String> permissions) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("roles", roles)
+                .claim("permissions", permissions)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date().getTime()) + expiration))
                 .signWith(getSigningKey())
@@ -55,12 +57,16 @@ public class JwtUtils {
 
     // Lấy thông tin username từ token
     public String getUsernameFromToken(String token) {
+        return getClaimsFromToken(token).getSubject();
+    }
+
+    // Lấy claims từ token
+    public io.jsonwebtoken.Claims getClaimsFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
     }
 
     // Kiểm tra token có hợp lệ không

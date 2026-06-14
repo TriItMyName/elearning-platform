@@ -10,12 +10,15 @@ import com.weblearning.dto.auth.LoginResponse;
 import com.weblearning.dto.auth.RefreshTokenRequest;
 import com.weblearning.dto.auth.RefreshTokenResponse;
 import com.weblearning.dto.auth.RegisterRequest;
+import com.weblearning.entity.Permission;
 import com.weblearning.entity.RefreshToken;
 import com.weblearning.entity.User;
 import com.weblearning.exception.AlreadyUserException;
 import com.weblearning.exception.UserNotFoundException;
+import com.weblearning.exception.AccountStatusException;
 import com.weblearning.repository.AuthRepository;
 import com.weblearning.service.AuthService;
+import com.weblearning.dto.auth.CurrentUserResponse;
 import com.weblearning.service.RefreshTokenService;
 
 import lombok.RequiredArgsConstructor;
@@ -45,7 +48,19 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserNotFoundException("Invalid credentials");
         }
-        String accessToken = jwtUtils.generateAccessToken(user.getUsername());
+        if (user.getStatus() == UserStatus.LOCKED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị khóa");
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị vô hiệu hóa");
+        }
+        java.util.List<String> roles = user.getRoles().stream().map(Role::getName).toList();
+        java.util.List<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+        String accessToken = jwtUtils.generateAccessToken(user.getUsername(), roles, permissions);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
         return LoginResponse.builder()
@@ -94,7 +109,20 @@ public class AuthServiceImpl implements AuthService {
         RefreshToken token = refreshTokenService.verifyRefreshToken(requestRefreshToken);
         User user = token.getUser();
 
-        String newAccessToken = jwtUtils.generateAccessToken(user.getUsername());
+        if (user.getStatus() == UserStatus.LOCKED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị khóa");
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị vô hiệu hóa");
+        }
+
+        java.util.List<String> roles = user.getRoles().stream().map(Role::getName).toList();
+        java.util.List<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .distinct()
+                .toList();
+        String newAccessToken = jwtUtils.generateAccessToken(user.getUsername(), roles, permissions);
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
 
         return RefreshTokenResponse.builder()
@@ -107,5 +135,27 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(RefreshTokenRequest request) {
         refreshTokenService.deleteByToken(request.getRefreshToken());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CurrentUserResponse getCurrentUser(String username) {
+        User user = authRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        return CurrentUserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .roles(user.getRoles().stream().map(Role::getName).toList())
+                .permissions(
+                        user.getRoles()
+                                .stream()
+                                .flatMap(role -> role.getPermissions().stream())
+                                .map(Permission::getName)
+                                .distinct()
+                                .toList())
+                .build();
     }
 }

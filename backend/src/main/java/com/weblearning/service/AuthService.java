@@ -1,5 +1,6 @@
 package com.weblearning.service;
 
+import com.weblearning.dto.auth.CurrentUserResponse;
 import com.weblearning.dto.auth.LoginRequest;
 import com.weblearning.dto.auth.LoginResponse;
 import com.weblearning.dto.auth.RefreshTokenRequest;
@@ -17,4 +18,7 @@ public interface AuthService {
     User getUserByUserName(String username);
 
     void logout(RefreshTokenRequest request);
+
+    CurrentUserResponse getCurrentUser(String username);
+
 }

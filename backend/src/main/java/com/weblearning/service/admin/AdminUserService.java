@@ -10,7 +10,8 @@ import com.weblearning.dto.user.UserResponse;
 import com.weblearning.entity.enums.UserStatus;
 
 public interface AdminUserService {
-    Page<UserResponse> getAllUsers(String keyword, UserStatus status, Pageable pageable);
+    Page<UserResponse> getAllUsers(String keyword, UserStatus status, String role, Pageable pageable);
+
 
     UserResponse getUserById(Long id);
 

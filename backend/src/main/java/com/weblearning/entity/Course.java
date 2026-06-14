@@ -43,6 +43,9 @@ public class Course {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column
+    private LocalDateTime updatedAt;
+
     @Column(nullable = false)
     private boolean deleted;
 
