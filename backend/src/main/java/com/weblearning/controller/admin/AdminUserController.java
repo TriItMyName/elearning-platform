@@ -38,9 +38,11 @@ public class AdminUserController {
     public ResponseEntity<Page<UserResponse>> getAllUser(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) UserStatus userStatus,
+            @RequestParam(required = false) String role,
             @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(adminUserService.getAllUsers(keyword, userStatus, pageable));
+        return ResponseEntity.ok(adminUserService.getAllUsers(keyword, userStatus, role, pageable));
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {

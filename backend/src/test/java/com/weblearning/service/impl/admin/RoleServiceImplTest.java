@@ -17,12 +17,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.weblearning.dto.permission.CreatePermissionRequest;
-import com.weblearning.dto.permission.PermissionResponse;
 import com.weblearning.dto.role.AssignRolesRequest;
 import com.weblearning.dto.role.CreateRoleRequest;
 import com.weblearning.dto.role.RoleResponse;
-import com.weblearning.entity.Permission;
 import com.weblearning.entity.Role;
 import com.weblearning.entity.User;
 import com.weblearning.repository.admin.PermissionRepository;
@@ -69,29 +66,6 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void createPermissionSavesPermission() {
-        CreatePermissionRequest request = CreatePermissionRequest.builder()
-                .name("COURSE_READ")
-                .description("Read Course")
-                .build();
-        Permission permission = Permission.builder()
-                .id(1L)
-                .name("COURSE_READ")
-                .description("Read Course")
-                .build();
-
-        when(permissionRepository.existsByName("COURSE_READ")).thenReturn(false);
-        when(permissionRepository.save(any(Permission.class))).thenReturn(permission);
-
-        PermissionResponse result = roleService.createPermission(request);
-
-        assertNotNull(result);
-        assertEquals("COURSE_READ", result.getName());
-        assertEquals("Read Course", result.getDescription());
-        verify(permissionRepository).save(any(Permission.class));
-    }
-
-    @Test
     void assignRolesToUserSavesUser() {
         User user = User.builder().id(1L).username("test").roles(new HashSet<>()).build();
         Role role = Role.builder().id(1L).name("TEACHER").build();
@@ -106,3 +80,4 @@ class RoleServiceImplTest {
         verify(userRepository).save(user);
     }
 }
+

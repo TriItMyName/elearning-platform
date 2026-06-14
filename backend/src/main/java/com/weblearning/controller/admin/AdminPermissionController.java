@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.weblearning.dto.permission.CreatePermissionRequest;
 import com.weblearning.dto.permission.PermissionResponse;
 import com.weblearning.dto.permission.UpdatePermissionRequest;
-import com.weblearning.service.admin.RoleService;
+import com.weblearning.service.admin.PermissionService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,26 +27,27 @@ import lombok.RequiredArgsConstructor;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminPermissionController {
 
-    private final RoleService roleService;
+    private final PermissionService permissionService;
 
     @GetMapping
     public ResponseEntity<List<PermissionResponse>> getAllPermissions() {
-        return ResponseEntity.ok(roleService.getAllPermissions());
+        return ResponseEntity.ok(permissionService.getAllPermissions());
     }
 
     @PostMapping
     public ResponseEntity<PermissionResponse> createPermission(@RequestBody CreatePermissionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(roleService.createPermission(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(permissionService.createPermission(request));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PermissionResponse> updatePermission(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
-        return ResponseEntity.ok(roleService.updatePermission(id, request));
+        return ResponseEntity.ok(permissionService.updatePermission(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
-        roleService.deletePermission(id);
+        permissionService.deletePermission(id);
         return ResponseEntity.noContent().build();
     }
 }
+
