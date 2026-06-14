@@ -8,9 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.weblearning.dto.permission.AssignPermissionsRequest;
-import com.weblearning.dto.permission.CreatePermissionRequest;
-import com.weblearning.dto.permission.PermissionResponse;
-import com.weblearning.dto.permission.UpdatePermissionRequest;
 import com.weblearning.dto.role.AssignRolesRequest;
 import com.weblearning.dto.role.CreateRoleRequest;
 import com.weblearning.dto.role.RoleResponse;
@@ -38,13 +35,6 @@ public class RoleServiceImpl implements RoleService {
     public List<RoleResponse> getAllRoles() {
         return roleRepository.findAll().stream()
                 .map(this::mapToRoleResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<PermissionResponse> getAllPermissions() {
-        return permissionRepository.findAll().stream()
-                .map(this::mapToPermissionResponse)
                 .collect(Collectors.toList());
     }
 
@@ -116,46 +106,6 @@ public class RoleServiceImpl implements RoleService {
         roleRepository.delete(role);
     }
 
-    @Override
-    @Transactional
-    public PermissionResponse createPermission(CreatePermissionRequest request) {
-        if (permissionRepository.existsByName(request.getName().toUpperCase())) {
-            throw new IllegalArgumentException("Permission already exists with name: " + request.getName());
-        }
-        Permission permission = Permission.builder()
-                .name(request.getName().toUpperCase())
-                .description(request.getDescription())
-                .build();
-        return mapToPermissionResponse(permissionRepository.save(permission));
-    }
-
-    @Override
-    @Transactional
-    public PermissionResponse updatePermission(Long id, UpdatePermissionRequest request) {
-        Permission permission = permissionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Permission not found with id: " + id));
-        
-        String newName = request.getName().toUpperCase();
-        if (!permission.getName().equalsIgnoreCase(newName) && permissionRepository.existsByName(newName)) {
-            throw new IllegalArgumentException("Permission already exists with name: " + newName);
-        }
-        permission.setName(newName);
-        permission.setDescription(request.getDescription());
-        return mapToPermissionResponse(permissionRepository.save(permission));
-    }
-
-    @Override
-    @Transactional
-    public void deletePermission(Long id) {
-        Permission permission = permissionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Permission not found with id: " + id));
-        
-        for (Role role : permission.getRoles()) {
-            role.getPermissions().remove(permission);
-        }
-        permissionRepository.delete(permission);
-    }
-
     private RoleResponse mapToRoleResponse(Role role) {
         return RoleResponse.builder()
                 .id(role.getId())
@@ -163,14 +113,6 @@ public class RoleServiceImpl implements RoleService {
                 .permissions(role.getPermissions() != null ? role.getPermissions().stream()
                         .map(Permission::getName)
                         .collect(Collectors.toSet()) : Set.of())
-                .build();
-    }
-
-    private PermissionResponse mapToPermissionResponse(Permission permission) {
-        return PermissionResponse.builder()
-                .id(permission.getId())
-                .name(permission.getName())
-                .description(permission.getDescription())
                 .build();
     }
 }

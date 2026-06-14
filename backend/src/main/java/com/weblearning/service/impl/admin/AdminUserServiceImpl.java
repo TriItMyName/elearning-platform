@@ -101,8 +101,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     // Phân trang và tìm kiếm
     @Override
-    public Page<UserResponse> getAllUsers(String keyword, UserStatus status, Pageable pageable) {
+    public Page<UserResponse> getAllUsers(String keyword, UserStatus status, String role, Pageable pageable) {
         Specification<User> spec = (root, query, cb) -> {
+            query.distinct(true);
             Predicate predicate = cb.conjunction();
 
             if (keyword != null && !keyword.trim().isEmpty()) {
@@ -112,11 +113,15 @@ public class AdminUserServiceImpl implements AdminUserService {
                 Predicate fullNameLike = cb.like(cb.lower(root.get("fullName")), search);
                 Predicate emailLike = cb.like(cb.lower(root.get("email")), search);
 
-                predicate = cb.or(usernameLike, fullNameLike, emailLike);
+                predicate = cb.and(predicate, cb.or(usernameLike, fullNameLike, emailLike));
             }
 
             if (status != null) {
                 predicate = cb.and(predicate, cb.equal(root.get("status"), status));
+            }
+
+            if (role != null && !role.trim().isEmpty()) {
+                predicate = cb.and(predicate, cb.equal(cb.upper(root.join("roles").get("name")), role.trim().toUpperCase()));
             }
 
             return predicate;
@@ -124,6 +129,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         return userRepository.findAll(spec, pageable).map(this::mapToUserResponse);
     }
+
 
     // tìm kiếm bằng id
     @Override
