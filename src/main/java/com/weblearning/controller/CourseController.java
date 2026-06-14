@@ -1,6 +1,7 @@
 package com.weblearning.controller;
 
 import com.weblearning.dto.course.CourseResponse;
+import com.weblearning.dto.course.EnrollmentResponse;
 import com.weblearning.dto.course.CreateCourseRequest;
 import com.weblearning.dto.course.CreateTeacherCourseRequest;
 import com.weblearning.dto.course.UpdateCourseRequest;
@@ -10,6 +11,7 @@ import com.weblearning.entity.Course;
 import com.weblearning.entity.User;
 import com.weblearning.service.AuthService;
 import com.weblearning.service.CourseService;
+import com.weblearning.service.EnrollmentService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -30,6 +33,7 @@ import java.time.LocalDateTime;
 public class CourseController {
 
     private final CourseService courseService;
+    private final EnrollmentService enrollmentService;
     private final AuthService authService;
 
     @PostMapping
@@ -112,6 +116,21 @@ public class CourseController {
             User instructor = getCurrentUser(authentication);
             courseService.deleteForInstructor(id, instructor);
             return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/teacher/{id}/students")
+    public ResponseEntity<List<EnrollmentResponse>> getStudentsByTeacher(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.ok(enrollmentService.getStudentsForInstructor(id, instructor));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         } catch (SecurityException ex) {
