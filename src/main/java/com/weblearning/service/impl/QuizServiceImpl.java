@@ -306,6 +306,15 @@ public class QuizServiceImpl implements QuizService {
                 continue;
             }
 
+            Matcher numberedQuestionMatcher = Pattern.compile("^\\d+\\s*[\\).:-]\\s*(.+)$").matcher(line);
+            if (numberedQuestionMatcher.matches()) {
+                if (current != null) {
+                    questions.add(current.build());
+                }
+                current = new ImportedQuestionBuilder(orderIndex++, numberedQuestionMatcher.group(1).trim());
+                continue;
+            }
+
             if (startsWithAny(line, "Q:", "QUESTION:", "Câu hỏi:", "Cau hoi:")) {
                 if (current != null) {
                     questions.add(current.build());
