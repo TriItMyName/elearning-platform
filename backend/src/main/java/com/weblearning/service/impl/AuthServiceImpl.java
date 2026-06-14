@@ -15,6 +15,7 @@ import com.weblearning.entity.RefreshToken;
 import com.weblearning.entity.User;
 import com.weblearning.exception.AlreadyUserException;
 import com.weblearning.exception.UserNotFoundException;
+import com.weblearning.exception.AccountStatusException;
 import com.weblearning.repository.AuthRepository;
 import com.weblearning.service.AuthService;
 import com.weblearning.dto.auth.CurrentUserResponse;
@@ -46,6 +47,12 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new UserNotFoundException("Invalid credentials"));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserNotFoundException("Invalid credentials");
+        }
+        if (user.getStatus() == UserStatus.LOCKED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị khóa");
+        }
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new AccountStatusException("Tài khoản của bạn đã bị vô hiệu hóa");
         }
         String accessToken = jwtUtils.generateAccessToken(user.getUsername());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
@@ -112,6 +119,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CurrentUserResponse getCurrentUser(String username) {
         User user = authRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
