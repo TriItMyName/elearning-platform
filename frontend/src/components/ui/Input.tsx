@@ -10,17 +10,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id ?? props.name
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {label ? (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={inputId} className="block text-sm font-medium text-[#374151]">
             {label}
           </label>
         ) : null}
         <input
           ref={ref}
           id={inputId}
-          className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20 ${
-            error ? 'border-red-500' : 'border-gray-300'
+          className={`w-full rounded-lg border px-3 py-2 text-sm text-[#111827] outline-none transition focus:ring-2 focus:ring-primary/15 ${
+            error
+              ? 'border-red-400 focus:border-red-500'
+              : 'border-[#d1d5db] focus:border-primary'
           } ${className}`}
           {...props}
         />
