@@ -1,5 +1,6 @@
 package com.weblearning.repository.admin;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,5 +15,17 @@ public interface AdminCourseRepository extends JpaRepository<Course, Long>, JpaS
     Optional<Course> findBySlug(String slug);
 
     Optional<Course> findByTitle(String title);
+
+    List<Course> findByDeletedFalse();
+
+    Optional<Course> findByIdAndDeletedFalse(Long id);
+
+    List<Course> findByDeletedTrue();
+
+    Optional<Course> findByIdAndDeletedTrue(Long id);
+
+    boolean existsByTitle(String title);
+
+    boolean existsBySlug(String slug);
 
 }
