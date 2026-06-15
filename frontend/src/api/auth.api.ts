@@ -3,24 +3,25 @@ import { tokenService } from '@/auth/token.service'
 import type {
   AuthTokens,
   AuthUser,
+  CurrentUserResponse,
   LoginCredentials,
   LoginResponse,
-  ProfileResponse,
   RegisterPayload,
 } from '@/types/auth'
 
-function toAuthUser(profile: ProfileResponse): AuthUser {
+function toAuthUser(me: CurrentUserResponse): AuthUser {
   return {
-    id: profile.id,
-    username: profile.username,
-    email: profile.email,
-    fullName: profile.fullName,
-    active: profile.active,
+    id: me.id,
+    username: me.username,
+    email: me.email,
+    fullName: me.fullName,
+    roles: me.roles,
+    permissions: me.permissions,
   }
 }
 
-async function fetchProfile(): Promise<AuthUser> {
-  const { data } = await apiClient.get<ProfileResponse>('/profile')
+async function fetchMe(): Promise<AuthUser> {
+  const { data } = await apiClient.get<CurrentUserResponse>('/auth/me')
   return toAuthUser(data)
 }
 
@@ -35,7 +36,7 @@ export const authApi = {
     }
     tokenService.setTokens(tokens)
 
-    const user = await fetchProfile()
+    const user = await fetchMe()
     tokenService.setUser(user)
     return { user, tokens }
   },
@@ -57,8 +58,8 @@ export const authApi = {
     tokenService.clearAuth()
   },
 
-  async getProfile(): Promise<AuthUser> {
-    return fetchProfile()
+  async getMe(): Promise<AuthUser> {
+    return fetchMe()
   },
 
   async refreshToken(refreshToken: string): Promise<AuthTokens> {

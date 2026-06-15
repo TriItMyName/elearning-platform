@@ -9,7 +9,7 @@ import { useSearchCourses } from '@/hooks/useCourses'
 import { getUserInitials } from '@/lib/user'
 
 export function Header() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, canAccessAdmin, logout } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -106,13 +106,15 @@ export function Header() {
                     >
                       Tài khoản
                     </Link>
-                    <Link
-                      to="/admin"
-                      className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Quản trị
-                    </Link>
+                    {canAccessAdmin ? (
+                      <Link
+                        to="/admin"
+                        className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Quản trị
+                      </Link>
+                    ) : null}
                     <Link
                       to="/my-courses"
                       className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"

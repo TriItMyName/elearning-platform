@@ -5,7 +5,17 @@ export interface AuthUser {
   username: string
   email: string
   fullName: string
-  active: boolean
+  roles: string[]
+  permissions?: string[]
+}
+
+export interface CurrentUserResponse {
+  id: number
+  username: string
+  fullName: string
+  email: string
+  roles: string[]
+  permissions: string[]
 }
 
 export interface AuthTokens {
