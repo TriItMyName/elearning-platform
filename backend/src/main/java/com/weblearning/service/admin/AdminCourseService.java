@@ -3,9 +3,8 @@ package com.weblearning.service.admin;
 import java.util.List;
 
 import com.weblearning.dto.admin.AdminCourseDtoResponse;
-import com.weblearning.dto.course.CourseResponse;
-import com.weblearning.dto.course.CreateCourseRequest;
-import com.weblearning.dto.course.UpdateCourseRequest;
+import com.weblearning.dto.admin.AdminCourseRequest;
+import com.weblearning.dto.admin.AdminCourseUpdateRequest;
 
 public interface AdminCourseService {
 
@@ -13,9 +12,13 @@ public interface AdminCourseService {
 
     public AdminCourseDtoResponse getCourseById(Long id);
 
-    public AdminCourseDtoResponse createCourse(CreateCourseRequest request);
+    public AdminCourseDtoResponse createCourse(AdminCourseRequest request);
 
-    public CourseResponse updateCourse(Long id, UpdateCourseRequest request);
+    public AdminCourseDtoResponse updateCourse(Long id, AdminCourseUpdateRequest request);
 
     public void deleteCourse(Long id);
+
+    public List<AdminCourseDtoResponse> getDeletedCourses();
+
+    public AdminCourseDtoResponse restoreCourse(Long id);
 }

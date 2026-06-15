@@ -1,24 +1,23 @@
 package com.weblearning.dto.admin;
 
+import com.weblearning.entity.enums.CourseStatus;
+
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-import com.weblearning.entity.enums.CourseStatus;
-
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdminCourseDtoResponse {
+public class AdminCourseUpdateRequest {
     private Long id;
     private Long categoryId;
     private Long instructorId;
     private String title;
-    private String slug;
+
     private String description;
+
     private CourseStatus adminStatus;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }
