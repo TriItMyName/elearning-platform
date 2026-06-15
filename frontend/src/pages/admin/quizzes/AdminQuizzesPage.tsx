@@ -1,25 +1,53 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import {
+  BookOpen,
+  ChevronRight,
+  Layers,
+  Pencil,
+  Plus,
+  Trash2,
+  Video,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { chaptersApi } from '@/api/chapters.api'
 import { coursesApi } from '@/api/courses.api'
 import { lessonsApi } from '@/api/lessons.api'
 import { quizzesApi } from '@/api/quizzes.api'
 import {
+  AdminBadge,
   AdminCard,
+  AdminIconButton,
+  AdminListItem,
   AdminModal,
+  AdminModalFooter,
   AdminPageHeader,
-  AdminTable,
-  AdminTableWrap,
+  AdminPanel,
+  AdminPickerRow,
+  AdminPickerSection,
+  AdminStepper,
+  AdminTextarea,
 } from '@/components/admin/AdminUi'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { getErrorMessage } from '@/lib/errors'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import type { Question, Quiz } from '@/types/quiz'
+import { LESSON_TYPE_LABEL } from '@/types/lesson'
+
+type PickerStep = 'course' | 'chapter' | 'lesson'
+
+const STEPS: Array<{ id: PickerStep | 'workspace'; label: string }> = [
+  { id: 'course', label: 'Khóa học' },
+  { id: 'chapter', label: 'Chương' },
+  { id: 'lesson', label: 'Bài học' },
+  { id: 'workspace', label: 'Soạn quiz' },
+]
 
 export function AdminQuizzesPage() {
+  const { confirm, ConfirmDialogHost } = useConfirmDialog()
   const [courseId, setCourseId] = useState<number | null>(null)
   const [chapterId, setChapterId] = useState<number | null>(null)
   const [lessonId, setLessonId] = useState<number | null>(null)
@@ -36,13 +64,13 @@ export function AdminQuizzesPage() {
 
   const chaptersQuery = useQuery({
     queryKey: ['chapters', courseId],
-    queryFn: () => chaptersApi.listByCourse(courseId!, { page: 0, size: 100 }),
+    queryFn: () => chaptersApi.listByCourse(courseId!, { page: 0, size: 100, sortBy: 'orderIndex' }),
     enabled: courseId != null,
   })
 
   const lessonsQuery = useQuery({
     queryKey: ['lessons', courseId, chapterId],
-    queryFn: () => lessonsApi.listByChapter(courseId!, chapterId!, { page: 0, size: 100 }),
+    queryFn: () => lessonsApi.listByChapter(courseId!, chapterId!, { page: 0, size: 100, sortBy: 'orderIndex' }),
     enabled: courseId != null && chapterId != null,
   })
 
@@ -85,153 +113,254 @@ export function AdminQuizzesPage() {
   const quizzes = quizzesQuery.data ?? []
   const questions = questionsQuery.data ?? []
 
+  const selectedCourse = courses.find((c) => c.id === courseId)
+  const selectedChapter = chapters.find((c) => c.id === chapterId)
+  const selectedLesson = lessons.find((l) => l.id === lessonId)
+  const selectedQuiz = quizzes.find((q) => q.id === quizId)
+
+  const currentStep: PickerStep | 'workspace' = !courseId
+    ? 'course'
+    : !chapterId
+      ? 'chapter'
+      : !lessonId
+        ? 'lesson'
+        : 'workspace'
+
+  const stepIndex = STEPS.findIndex((s) => s.id === currentStep)
+
+  useEffect(() => {
+    if (!lessonId || quizzes.length === 0) return
+    if (quizId == null || !quizzes.some((q) => q.id === quizId)) {
+      setQuizId(quizzes[0].id)
+    }
+  }, [lessonId, quizzes, quizId])
+
   const ready = courseId != null && chapterId != null && lessonId != null
+
+  const resetFrom = (step: PickerStep) => {
+    if (step === 'course') {
+      setCourseId(null)
+      setChapterId(null)
+      setLessonId(null)
+      setQuizId(null)
+      return
+    }
+    if (step === 'chapter') {
+      setChapterId(null)
+      setLessonId(null)
+      setQuizId(null)
+      return
+    }
+    setLessonId(null)
+    setQuizId(null)
+  }
 
   return (
     <div>
       <AdminPageHeader
-        title="Quản lý Quiz"
-        description="Chọn khóa học → chương → bài học → quiz → câu hỏi"
+        title="Quiz & câu hỏi"
+        description="Chọn bài học rồi tạo quiz và câu hỏi trắc nghiệm. Luồng: khóa học → chương → bài học → soạn nội dung."
       />
 
-      <AdminCard className="mb-4 grid gap-4 p-4 sm:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-[#666]">Khóa học</label>
-          <select
-            value={courseId ?? ''}
-            onChange={(e) => {
-              setCourseId(Number(e.target.value) || null)
-              setChapterId(null)
-              setLessonId(null)
-              setQuizId(null)
-            }}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="">Chọn khóa học</option>
-            {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-[#666]">Chương</label>
-          <select
-            value={chapterId ?? ''}
-            disabled={!courseId}
-            onChange={(e) => {
-              setChapterId(Number(e.target.value) || null)
-              setLessonId(null)
-              setQuizId(null)
-            }}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
-          >
-            <option value="">Chọn chương</option>
-            {chapters.map((ch) => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-[#666]">Bài học</label>
-          <select
-            value={lessonId ?? ''}
-            disabled={!chapterId}
-            onChange={(e) => {
-              setLessonId(Number(e.target.value) || null)
-              setQuizId(null)
-            }}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
-          >
-            <option value="">Chọn bài học</option>
-            {lessons.map((l) => <option key={l.id} value={l.id}>{l.title}</option>)}
-          </select>
-        </div>
+      <AdminCard className="mb-6" padding>
+        <AdminStepper steps={STEPS} currentIndex={stepIndex} />
+
+        {currentStep === 'workspace' && selectedCourse && selectedChapter && selectedLesson ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#ececec] pt-4 text-sm">
+            <span className="text-[#6b7280]">Đang soạn:</span>
+            <button type="button" onClick={() => resetFrom('course')} className="font-medium text-[#f05123] hover:underline">
+              {selectedCourse.title}
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 text-[#d1d5db]" />
+            <button type="button" onClick={() => resetFrom('chapter')} className="font-medium text-[#f05123] hover:underline">
+              {selectedChapter.title}
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 text-[#d1d5db]" />
+            <button type="button" onClick={() => resetFrom('lesson')} className="font-medium text-[#f05123] hover:underline">
+              {selectedLesson.title}
+            </button>
+          </div>
+        ) : null}
       </AdminCard>
 
-      {ready ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <AdminCard>
-            <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
-              <h2 className="font-bold">Quiz</h2>
-              <Button className="!bg-[#f05123] !px-3 !py-1.5 !text-xs" onClick={() => setQuizModalOpen(true)}>
-                <Plus className="mr-1 h-3.5 w-3.5" /> Thêm
-              </Button>
-            </div>
-            <div className="divide-y divide-[#f0f0f0]">
-              {quizzes.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-[#999]">Chưa có quiz</p>
-              ) : (
-                quizzes.map((quiz) => (
-                  <div
-                    key={quiz.id}
-                    className={[
-                      'flex items-center gap-2 px-4 py-3 text-sm',
-                      quizId === quiz.id ? 'bg-[#fff4f0] font-semibold text-[#f05123]' : '',
-                    ].join(' ')}
-                  >
-                    <button type="button" className="flex-1 text-left" onClick={() => setQuizId(quiz.id)}>
-                      Quiz #{quiz.id} — {quiz.timeLimit ?? '∞'} phút — đạt {quiz.passScore ?? 0}%
-                    </button>
-                    <button type="button" onClick={() => setEditQuiz(quiz)} className="rounded p-1.5 hover:bg-[#f0f0f0]">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Xóa quiz này?')) deleteQuizMutation.mutate(quiz.id)
-                      }}
-                      className="rounded p-1.5 text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </AdminCard>
+      {currentStep === 'course' ? (
+        <AdminPickerSection
+          title="Bước 1 — Chọn khóa học"
+          description="Quiz được gắn vào một bài học cụ thể trong khóa."
+          loading={coursesQuery.isLoading}
+          isEmpty={courses.length === 0}
+          empty="Chưa có khóa học nào."
+        >
+          {courses.map((course) => (
+            <AdminPickerRow
+              key={course.id}
+              icon={BookOpen}
+              title={course.title}
+              meta={course.slug}
+              onClick={() => setCourseId(course.id)}
+            />
+          ))}
+        </AdminPickerSection>
+      ) : null}
 
-          <AdminCard>
-            <div className="flex items-center justify-between border-b border-[#f0f0f0] px-4 py-3">
-              <h2 className="font-bold">Câu hỏi</h2>
-              <Button
-                className="!bg-[#f05123] !px-3 !py-1.5 !text-xs"
-                disabled={!quizId}
-                onClick={() => setQuestionModalOpen(true)}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" /> Thêm
+      {currentStep === 'chapter' && selectedCourse ? (
+        <AdminPickerSection
+          title="Bước 2 — Chọn chương"
+          description={`Khóa học: ${selectedCourse.title}`}
+          loading={chaptersQuery.isLoading}
+          isEmpty={chapters.length === 0}
+          empty="Khóa này chưa có chương."
+          onBack={() => resetFrom('course')}
+        >
+          {chapters.map((chapter) => (
+            <AdminPickerRow
+              key={chapter.id}
+              icon={Layers}
+              title={chapter.title}
+              meta={`Thứ tự ${chapter.orderIndex}`}
+              onClick={() => setChapterId(chapter.id)}
+            />
+          ))}
+        </AdminPickerSection>
+      ) : null}
+
+      {currentStep === 'lesson' && selectedChapter ? (
+        <AdminPickerSection
+          title="Bước 3 — Chọn bài học"
+          description={`Chương: ${selectedChapter.title}`}
+          loading={lessonsQuery.isLoading}
+          isEmpty={lessons.length === 0}
+          empty="Chương này chưa có bài học."
+          onBack={() => resetFrom('chapter')}
+        >
+          {lessons.map((lesson) => (
+            <AdminPickerRow
+              key={lesson.id}
+              icon={Video}
+              title={lesson.title}
+              meta={LESSON_TYPE_LABEL[lesson.lessonType] ?? 'Bài học'}
+              onClick={() => setLessonId(lesson.id)}
+            />
+          ))}
+        </AdminPickerSection>
+      ) : null}
+
+      {currentStep === 'workspace' && ready ? (
+        <div className="grid gap-4 xl:grid-cols-[minmax(280px,320px)_1fr]">
+          <AdminPanel
+            title="Danh sách quiz"
+            action={
+              <Button size="sm" onClick={() => setQuizModalOpen(true)}>
+                <Plus className="mr-1 h-3.5 w-3.5" /> Tạo
               </Button>
-            </div>
-            {!quizId ? (
-              <p className="px-4 py-8 text-center text-sm text-[#999]">Chọn một quiz</p>
+            }
+          >
+            {quizzesQuery.isLoading ? (
+              <p className="px-4 py-10 text-center text-sm text-[#9ca3af]">Đang tải quiz...</p>
+            ) : quizzes.length === 0 ? (
+              <div className="px-4 py-10 text-center">
+                <p className="text-sm text-[#6b7280]">Bài học này chưa có quiz.</p>
+                <Button size="sm" className="mt-3" onClick={() => setQuizModalOpen(true)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Tạo quiz đầu tiên
+                </Button>
+              </div>
             ) : (
-              <AdminTableWrap>
-                <AdminTable>
-                  <tbody className="divide-y divide-[#f0f0f0]">
-                    {questions.map((q) => (
-                      <tr key={q.id}>
-                        <td className="px-4 py-3 text-sm">
-                          <p className="font-medium">{q.content}</p>
-                          <p className="mt-1 text-xs text-[#999]">{q.options.length} đáp án — {q.score} điểm</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <button type="button" onClick={() => setEditQuestion(q)} className="rounded p-1.5 hover:bg-[#f0f0f0]">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm('Xóa câu hỏi?')) deleteQuestionMutation.mutate(q.id)
-                              }}
-                              className="rounded p-1.5 text-red-500 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </AdminTable>
-              </AdminTableWrap>
+              quizzes.map((quiz) => (
+                <AdminListItem
+                  key={quiz.id}
+                  active={quizId === quiz.id}
+                  onClick={() => setQuizId(quiz.id)}
+                  actions={
+                    <>
+                      <AdminIconButton title="Sửa quiz" onClick={() => setEditQuiz(quiz)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </AdminIconButton>
+                      <AdminIconButton
+                        title="Xóa quiz"
+                        variant="danger"
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: 'Xóa quiz',
+                            description: 'Bạn có chắc muốn xóa quiz này? Toàn bộ câu hỏi bên trong cũng sẽ bị xóa.',
+                            confirmLabel: 'Xóa',
+                          })
+                          if (ok) deleteQuizMutation.mutate(quiz.id)
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </AdminIconButton>
+                    </>
+                  }
+                >
+                  <span className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center">
+                    <span className="font-medium">Quiz #{quiz.id}</span>
+                    <span className="flex gap-1.5">
+                      <AdminBadge tone="accent">{quiz.timeLimit ?? '∞'} phút</AdminBadge>
+                      <AdminBadge>Đạt {quiz.passScore ?? 0}%</AdminBadge>
+                    </span>
+                  </span>
+                </AdminListItem>
+              ))
             )}
-          </AdminCard>
+          </AdminPanel>
+
+          <div className="space-y-4">
+            {selectedQuiz ? (
+              <AdminCard padding>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold tracking-wide text-[#f05123] uppercase">Quiz đang chọn</p>
+                    <h2 className="mt-1 text-lg font-bold text-[#111827]">Quiz #{selectedQuiz.id}</h2>
+                    <p className="mt-1 text-sm text-[#6b7280]">
+                      Thời gian {selectedQuiz.timeLimit ?? '∞'} phút · Điểm đạt {selectedQuiz.passScore ?? 0}%
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => setEditQuiz(selectedQuiz)}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Sửa cài đặt
+                    </Button>
+                    <Button size="sm" onClick={() => setQuestionModalOpen(true)}>
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Thêm câu hỏi
+                    </Button>
+                  </div>
+                </div>
+              </AdminCard>
+            ) : null}
+
+            <AdminPanel title={`Câu hỏi (${questions.length})`}>
+              {!quizId ? (
+                <p className="px-4 py-10 text-center text-sm text-[#9ca3af]">Chọn một quiz bên trái.</p>
+              ) : questionsQuery.isLoading ? (
+                <p className="px-4 py-10 text-center text-sm text-[#9ca3af]">Đang tải câu hỏi...</p>
+              ) : questions.length === 0 ? (
+                <div className="px-4 py-10 text-center">
+                  <p className="text-sm text-[#6b7280]">Quiz này chưa có câu hỏi.</p>
+                  <Button size="sm" className="mt-3" onClick={() => setQuestionModalOpen(true)}>
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Thêm câu hỏi
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y divide-[#f3f4f6]">
+                  {questions.map((q, index) => (
+                    <QuestionCard
+                      key={q.id}
+                      index={index}
+                      question={q}
+                      onEdit={() => setEditQuestion(q)}
+                      onDelete={async () => {
+                        const ok = await confirm({
+                          title: 'Xóa câu hỏi',
+                          description: 'Bạn có chắc muốn xóa câu hỏi này?',
+                          confirmLabel: 'Xóa',
+                        })
+                        if (ok) deleteQuestionMutation.mutate(q.id)
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </AdminPanel>
+          </div>
         </div>
       ) : null}
 
@@ -242,6 +371,7 @@ export function AdminQuizzesPage() {
           chapterId={chapterId}
           lessonId={lessonId}
           onClose={() => setQuizModalOpen(false)}
+          onCreated={(id) => setQuizId(id)}
         />
       ) : null}
       {ready && editQuiz ? (
@@ -276,6 +406,56 @@ export function AdminQuizzesPage() {
           onClose={() => setEditQuestion(null)}
         />
       ) : null}
+      <ConfirmDialogHost />
+    </div>
+  )
+}
+
+function QuestionCard({
+  index,
+  question,
+  onEdit,
+  onDelete,
+}: {
+  index: number
+  question: Question
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="px-4 py-4 sm:px-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-[#9ca3af]">Câu {index + 1} · {question.score} điểm</p>
+          <p className="mt-1 text-sm font-medium leading-relaxed text-[#111827]">{question.content}</p>
+          <ul className="mt-3 space-y-1.5">
+            {question.options.map((opt) => (
+              <li
+                key={opt.id}
+                className={cn(
+                  'rounded-lg border px-3 py-2 text-sm',
+                  opt.isCorrect
+                    ? 'border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]'
+                    : 'border-[#ececec] bg-[#fcfcfc] text-[#374151]',
+                )}
+              >
+                {opt.content}
+                {opt.isCorrect ? (
+                  <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-[#059669]">Đúng</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex shrink-0 gap-0.5">
+          <AdminIconButton title="Sửa câu hỏi" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </AdminIconButton>
+          <AdminIconButton title="Xóa câu hỏi" variant="danger" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </AdminIconButton>
+        </div>
+      </div>
     </div>
   )
 }
@@ -287,6 +467,7 @@ function QuizFormModal({
   lessonId,
   initial,
   onClose,
+  onCreated,
 }: {
   open: boolean
   courseId: number
@@ -294,10 +475,17 @@ function QuizFormModal({
   lessonId: number
   initial?: Quiz
   onClose: () => void
+  onCreated?: (quizId: number) => void
 }) {
   const queryClient = useQueryClient()
   const [timeLimit, setTimeLimit] = useState(String(initial?.timeLimit ?? 30))
   const [passScore, setPassScore] = useState(String(initial?.passScore ?? 70))
+
+  useEffect(() => {
+    if (!open) return
+    setTimeLimit(String(initial?.timeLimit ?? 30))
+    setPassScore(String(initial?.passScore ?? 70))
+  }, [open, initial])
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -309,9 +497,10 @@ function QuizFormModal({
         ? quizzesApi.update(courseId, chapterId, lessonId, initial.id, payload)
         : quizzesApi.create(courseId, chapterId, lessonId, payload)
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       notify.success(initial ? 'Cập nhật quiz thành công' : 'Tạo quiz thành công')
       void queryClient.invalidateQueries({ queryKey: ['quizzes', courseId, chapterId, lessonId] })
+      if (!initial && data?.id) onCreated?.(data.id)
       onClose()
     },
     onError: (e) => notify.error(getErrorMessage(e)),
@@ -320,18 +509,21 @@ function QuizFormModal({
   return (
     <AdminModal
       open={open}
-      title={initial ? 'Sửa quiz' : 'Thêm quiz'}
+      title={initial ? 'Sửa cài đặt quiz' : 'Tạo quiz mới'}
+      description="Thiết lập thời gian làm bài và điểm tối thiểu để đạt."
       onClose={onClose}
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button className="!bg-[#f05123]" isLoading={mutation.isPending} onClick={() => mutation.mutate()}>Lưu</Button>
-        </>
+        <AdminModalFooter
+          onCancel={onClose}
+          onSubmit={() => mutation.mutate()}
+          isLoading={mutation.isPending}
+          submitLabel={initial ? 'Lưu' : 'Tạo quiz'}
+        />
       }
     >
-      <div className="space-y-4">
-        <Input label="Thời gian (phút)" type="number" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
-        <Input label="Điểm đạt (%)" type="number" value={passScore} onChange={(e) => setPassScore(e.target.value)} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Thời gian (phút)" type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
+        <Input label="Điểm đạt (%)" type="number" min={0} max={100} value={passScore} onChange={(e) => setPassScore(e.target.value)} />
       </div>
     </AdminModal>
   )
@@ -357,15 +549,29 @@ function QuestionFormModal({
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
-  const [content, setContent] = useState(initial?.content ?? '')
-  const [score, setScore] = useState(String(initial?.score ?? 1))
-  const [orderIndex, setOrderIndex] = useState(String(initial?.orderIndex ?? nextOrder))
-  const [options, setOptions] = useState(
-    initial?.options.map((o) => ({ content: o.content, isCorrect: o.isCorrect })) ?? [
-      { content: '', isCorrect: true },
-      { content: '', isCorrect: false },
-    ],
-  )
+  const [content, setContent] = useState('')
+  const [score, setScore] = useState('1')
+  const [orderIndex, setOrderIndex] = useState('0')
+  const [options, setOptions] = useState([
+    { content: '', isCorrect: true },
+    { content: '', isCorrect: false },
+  ])
+
+  useEffect(() => {
+    if (!open) return
+    setContent(initial?.content ?? '')
+    setScore(String(initial?.score ?? 1))
+    setOrderIndex(String(initial?.orderIndex ?? nextOrder))
+    setOptions(
+      initial?.options.map((o) => ({ content: o.content, isCorrect: o.isCorrect })) ?? [
+        { content: '', isCorrect: true },
+        { content: '', isCorrect: false },
+      ],
+    )
+  }, [open, initial, nextOrder])
+
+  const validOptions = useMemo(() => options.filter((o) => o.content.trim()), [options])
+  const hasCorrect = validOptions.some((o) => o.isCorrect)
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -373,7 +579,7 @@ function QuestionFormModal({
         content,
         score: Number(score),
         orderIndex: Number(orderIndex),
-        options: options.filter((o) => o.content.trim()),
+        options: validOptions,
       }
       return initial
         ? quizzesApi.updateQuestion(courseId, chapterId, lessonId, quizId, initial.id, payload)
@@ -391,39 +597,44 @@ function QuestionFormModal({
     <AdminModal
       open={open}
       title={initial ? 'Sửa câu hỏi' : 'Thêm câu hỏi'}
+      description="Nhập nội dung, chọn một đáp án đúng và thiết lập điểm."
       onClose={onClose}
+      size="lg"
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button className="!bg-[#f05123]" isLoading={mutation.isPending} onClick={() => mutation.mutate()} disabled={!content}>
-            Lưu
-          </Button>
-        </>
+        <AdminModalFooter
+          onCancel={onClose}
+          onSubmit={() => mutation.mutate()}
+          isLoading={mutation.isPending}
+          submitDisabled={!content.trim() || validOptions.length < 2 || !hasCorrect}
+          submitLabel={initial ? 'Lưu' : 'Thêm câu hỏi'}
+        />
       }
     >
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Nội dung câu hỏi</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-          />
+          <label className="mb-1.5 block text-sm font-medium text-[#374151]">Nội dung câu hỏi</label>
+          <AdminTextarea value={content} onChange={(e) => setContent(e.target.value)} rows={3} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Điểm" type="number" value={score} onChange={(e) => setScore(e.target.value)} />
-          <Input label="Thứ tự" type="number" value={orderIndex} onChange={(e) => setOrderIndex(e.target.value)} />
+          <Input label="Điểm" type="number" min={1} value={score} onChange={(e) => setScore(e.target.value)} />
+          <Input label="Thứ tự" type="number" min={0} value={orderIndex} onChange={(e) => setOrderIndex(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Đáp án</p>
+          <p className="text-sm font-medium text-[#374151]">Đáp án — chọn một đáp án đúng</p>
           {options.map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <label
+              key={i}
+              className={cn(
+                'flex cursor-pointer items-center gap-3 rounded-lg border px-3.5 py-2.5 transition',
+                opt.isCorrect ? 'border-[#f05123]/35 bg-[#fff8f5]' : 'border-[#ececec] hover:bg-[#fafafa]',
+              )}
+            >
               <input
                 type="radio"
-                name="correct"
+                name="correct-answer"
                 checked={opt.isCorrect}
                 onChange={() => setOptions(options.map((o, j) => ({ ...o, isCorrect: j === i })))}
+                className="text-[#f05123] focus:ring-[#f05123]/25"
               />
               <input
                 value={opt.content}
@@ -433,14 +644,11 @@ function QuestionFormModal({
                   setOptions(next)
                 }}
                 placeholder={`Đáp án ${i + 1}`}
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9ca3af]"
               />
-            </div>
+            </label>
           ))}
-          <Button
-            variant="secondary"
-            onClick={() => setOptions([...options, { content: '', isCorrect: false }])}
-          >
+          <Button variant="secondary" size="sm" onClick={() => setOptions([...options, { content: '', isCorrect: false }])}>
             Thêm đáp án
           </Button>
         </div>
