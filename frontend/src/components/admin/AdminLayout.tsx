@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   Shield,
+  UserCircle,
   Users,
   Video,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ const NAV_ITEMS: Array<{
 }> = [
   { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/admin/users', label: 'Học viên', icon: Users },
+  { to: '/admin/accounts', label: 'Tài khoản', icon: UserCircle },
   { to: '/admin/courses', label: 'Khóa học', icon: BookOpen },
   { to: '/admin/lessons', label: 'Bài học', icon: Video },
   { to: '/admin/quizzes', label: 'Quiz', icon: HelpCircle },

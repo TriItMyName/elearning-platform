@@ -32,7 +32,7 @@ export interface UpdateUserStatusPayload {
 export interface AdminRole {
   id: number
   name: string
-  permissions: AdminPermission[]
+  permissions: string[]
 }
 
 export interface CreateRolePayload {
@@ -51,16 +51,6 @@ export interface AdminPermission {
   id: number
   name: string
   description: string | null
-}
-
-export interface CreatePermissionPayload {
-  name: string
-  description?: string
-}
-
-export interface UpdatePermissionPayload {
-  name: string
-  description?: string
 }
 
 export interface AssignPermissionsPayload {
@@ -87,6 +77,7 @@ export interface UpdateCategoryPayload {
 export interface UsersQueryParams {
   keyword?: string
   userStatus?: UserStatus
+  role?: string
   page?: number
   size?: number
 }

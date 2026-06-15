@@ -12,6 +12,7 @@ import { AdminQuizzesPage } from '@/pages/admin/quizzes/AdminQuizzesPage'
 import { AdminReportsPage } from '@/pages/admin/placeholders/AdminPlaceholderPages'
 import { AdminPermissionsPage } from '@/pages/admin/permissions/AdminPermissionsPage'
 import { AdminRolesPage } from '@/pages/admin/roles/AdminRolesPage'
+import { AdminAccountsPage } from '@/pages/admin/users/AdminAccountsPage'
 import { AdminUsersPage } from '@/pages/admin/users/AdminUsersPage'
 import { CourseDetailPage } from '@/pages/courses/CourseDetailPage'
 import { CoursesPage } from '@/pages/courses/CoursesPage'
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
         children: [
           { path: 'admin', element: <AdminDashboardPage /> },
           { path: 'admin/users', element: <AdminUsersPage /> },
+          { path: 'admin/accounts', element: <AdminAccountsPage /> },
           { path: 'admin/categories', element: <AdminCategoriesPage /> },
           { path: 'admin/roles', element: <AdminRolesPage /> },
           { path: 'admin/permissions', element: <AdminPermissionsPage /> },
