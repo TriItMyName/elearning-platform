@@ -1,6 +1,7 @@
 package com.weblearning.service;
 
 import com.weblearning.dto.course.CourseResponse;
+import com.weblearning.dto.course.CourseContentResponse;
 import com.weblearning.entity.Course;
 import com.weblearning.entity.User;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,12 @@ public interface CourseService {
     List<CourseResponse> getCoursesByInstructor(User instructor);
 
     Page<CourseResponse> getCoursesByInstructor(User instructor, Pageable pageable);
+
+    List<CourseResponse> getCoursesByStudent(User student);
+
+    CourseContentResponse getCourseContentForInstructor(Long id, User instructor);
+
+    CourseContentResponse getCourseContentForStudent(Long id, User student);
 
     CourseResponse createForInstructor(Course course, User instructor);
 

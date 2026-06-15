@@ -7,6 +7,7 @@ import com.weblearning.entity.User;
 import com.weblearning.repository.ChapterRepository;
 import com.weblearning.repository.CourseRepository;
 import com.weblearning.service.ChapterService;
+import com.weblearning.utils.StringUnitls;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -42,6 +43,7 @@ public class ChapterServiceImpl implements ChapterService {
     public ChapterResponse createForInstructor(Long courseId, Chapter chapter, User instructor) {
         Course course = getOwnedCourse(courseId, instructor);
         chapter.setCourse(course);
+        chapter.setSlug(StringUnitls.toSlug(chapter.getTitle()));
         return toChapterResponse(chapterRepository.save(chapter));
     }
 
@@ -50,6 +52,7 @@ public class ChapterServiceImpl implements ChapterService {
         getOwnedCourse(courseId, instructor);
         Chapter existing = getChapterInCourse(courseId, chapterId);
         existing.setTitle(chapter.getTitle());
+        existing.setSlug(StringUnitls.toSlug(chapter.getTitle()));
         existing.setOrderIndex(chapter.getOrderIndex());
         return toChapterResponse(chapterRepository.save(existing));
     }
@@ -116,6 +119,7 @@ public class ChapterServiceImpl implements ChapterService {
         response.setId(chapter.getId());
         response.setCourseId(chapter.getCourse() != null ? chapter.getCourse().getId() : null);
         response.setTitle(chapter.getTitle());
+        response.setSlug(chapter.getSlug());
         response.setOrderIndex(chapter.getOrderIndex());
         return response;
     }

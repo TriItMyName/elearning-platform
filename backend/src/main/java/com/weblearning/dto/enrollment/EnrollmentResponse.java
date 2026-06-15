@@ -1,4 +1,4 @@
-package com.weblearning.dto.course;
+package com.weblearning.dto.enrollment;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 public class EnrollmentResponse {
     private Long enrollmentId;
     private Long courseId;
+    private String courseTitle;
+    private String courseSlug;
     private Long studentId;
     private String username;
     private String fullName;

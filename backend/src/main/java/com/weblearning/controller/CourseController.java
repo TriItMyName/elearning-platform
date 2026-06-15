@@ -1,7 +1,8 @@
 package com.weblearning.controller;
 
+import com.weblearning.dto.course.CourseContentResponse;
 import com.weblearning.dto.course.CourseResponse;
-import com.weblearning.dto.course.EnrollmentResponse;
+import com.weblearning.dto.enrollment.EnrollmentResponse;
 import com.weblearning.dto.course.CreateCourseRequest;
 import com.weblearning.dto.course.CreateTeacherCourseRequest;
 import com.weblearning.dto.course.StudentLearningProgressResponse;
@@ -78,6 +79,75 @@ public class CourseController {
         User instructor = getCurrentUser(authentication);
         Pageable pageable = createPageable(page, size, sortBy, direction);
         return ResponseEntity.ok(courseService.getCoursesByInstructor(instructor, pageable));
+    }
+
+    @GetMapping("/teacher/my-courses")
+    public ResponseEntity<Page<CourseResponse>> getMyTeacherCourses(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        User instructor = getCurrentUser(authentication);
+        Pageable pageable = createPageable(page, size, sortBy, direction);
+        return ResponseEntity.ok(courseService.getCoursesByInstructor(instructor, pageable));
+    }
+
+    @GetMapping("/teacher/{id}/content")
+    public ResponseEntity<CourseContentResponse> getCourseContentByTeacher(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User instructor = getCurrentUser(authentication);
+            return ResponseEntity.ok(courseService.getCourseContentForInstructor(id, instructor));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/student/my-courses")
+    public ResponseEntity<List<CourseResponse>> getMyStudentCourses(Authentication authentication) {
+        User student = getCurrentUser(authentication);
+        return ResponseEntity.ok(courseService.getCoursesByStudent(student));
+    }
+
+    @GetMapping("/student/{id}/content")
+    public ResponseEntity<CourseContentResponse> getCourseContentByStudent(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(courseService.getCourseContentForStudent(id, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @PostMapping("/{id}/enroll")
+    public ResponseEntity<EnrollmentResponse> enrollCourse(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(enrollmentService.enrollCourseForStudent(id, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/student/enrollments")
+    public ResponseEntity<List<EnrollmentResponse>> getMyEnrollments(Authentication authentication) {
+        User student = getCurrentUser(authentication);
+        return ResponseEntity.ok(enrollmentService.getEnrollmentsForStudent(student));
     }
 
     @PutMapping("/{id}")
