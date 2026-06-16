@@ -12,13 +12,17 @@ import { authApi } from '@/api/auth.api'
 import { refreshAccessToken } from '@/auth/token.refresh'
 import { SESSION_EXPIRED_EVENT, resetSessionExpiredFlag } from '@/auth/session'
 import { tokenService } from '@/auth/token.service'
+import { currentUserQueryKey } from '@/hooks/useAuthMe'
+import { canAccessAdminPanel } from '@/lib/auth-roles'
 import { notify } from '@/lib/notify'
+import { queryClient } from '@/lib/query-client'
 import type { AuthUser, LoginCredentials, RegisterPayload, UserRole } from '@/types/auth'
 
 interface AuthContextValue {
   user: AuthUser | null
   isAuthenticated: boolean
   isLoading: boolean
+  canAccessAdmin: boolean
   login: (credentials: LoginCredentials) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => Promise<void>
@@ -57,9 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        const profile = await authApi.getProfile()
-        setUser(profile)
-        tokenService.setUser(profile)
+        const me = await queryClient.fetchQuery({
+          queryKey: currentUserQueryKey,
+          queryFn: () => authApi.getMe(),
+          staleTime: 60_000,
+        })
+        setUser(me)
+        tokenService.setUser(me)
       } catch {
         setUser(null)
       } finally {
@@ -76,9 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resetSessionExpiredFlag()
       tokenService.clearAuth()
       setUser(null)
+      queryClient.removeQueries({ queryKey: currentUserQueryKey })
 
       const response = await authApi.login(credentials)
       setUser(response.user)
+      queryClient.setQueryData(currentUserQueryKey, response.user)
       notify.success('Đăng nhập thành công')
     } finally {
       setIsLoading(false)
@@ -100,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout()
       setUser(null)
+      queryClient.removeQueries({ queryKey: currentUserQueryKey })
       notify.info('Đã đăng xuất')
     } finally {
       setIsLoading(false)
@@ -112,25 +123,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = useCallback(
     (roles: UserRole | UserRole[]) => {
-      if (!user) return false
-      const allowed = Array.isArray(roles) ? roles : [roles]
-      return allowed.some((role) => role === 'admin')
+      if (!user?.roles?.length) return false
+      const allowed = (Array.isArray(roles) ? roles : [roles]).map((r) => r.toLowerCase())
+      const userRoles = user.roles.map((r) => r.toLowerCase())
+      return allowed.some((role) => userRoles.includes(role))
     },
     [user],
   )
+
+  const canAccessAdmin = canAccessAdminPanel(user?.roles)
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isAuthenticated: Boolean(user && tokenService.getRefreshToken()),
       isLoading: isLoading || isBootstrapping,
+      canAccessAdmin,
       login,
       register,
       logout,
       syncUser,
       hasRole,
     }),
-    [user, isLoading, isBootstrapping, login, register, logout, syncUser, hasRole],
+    [user, isLoading, isBootstrapping, canAccessAdmin, login, register, logout, syncUser, hasRole],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

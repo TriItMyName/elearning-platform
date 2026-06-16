@@ -1,4 +1,4 @@
-import { BookOpen, Calendar } from 'lucide-react'
+import { BookOpen, Calendar, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 
@@ -9,6 +9,7 @@ import {
   HOME_COURSE_COLS,
   HOME_COURSE_ROWS_GRID,
 } from '@/constants/courses'
+import { useContinueLearnUrl } from '@/hooks/useEnrollment'
 import { COURSE_STATUS_LABEL } from '@/types/course'
 import type { Course } from '@/types/course'
 
@@ -35,10 +36,12 @@ function formatDate(iso: string) {
 interface CourseItemProps {
   course: Course
   className?: string
+  enrolled?: boolean
 }
 
-export function CourseItem({ course, className = 'w-full' }: CourseItemProps) {
+export function CourseItem({ course, className = 'w-full', enrolled = false }: CourseItemProps) {
   const statusLabel = COURSE_STATUS_LABEL[course.status] ?? `Trạng thái ${course.status}`
+  const continueUrl = useContinueLearnUrl(enrolled ? course : null)
 
   return (
     <div className={`${className} min-w-0 overflow-hidden rounded-2xl bg-[rgba(0,0,0,0.03)]`}>
@@ -76,6 +79,16 @@ export function CourseItem({ course, className = 'w-full' }: CourseItemProps) {
             {formatDate(course.createdAt)}
           </span>
         </div>
+
+        {enrolled ? (
+          <Link
+            to={continueUrl}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f05123] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[#e04a1f] sm:text-[13px]"
+          >
+            <Play className="h-3.5 w-3.5" />
+            Tiếp tục học
+          </Link>
+        ) : null}
       </div>
     </div>
   )

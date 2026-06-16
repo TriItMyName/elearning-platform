@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import com.weblearning.entity.enums.CourseStatus;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,7 +18,7 @@ public class AdminCourseDtoResponse {
     private String title;
     private String slug;
     private String description;
-    private Integer status;
+    private CourseStatus adminStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

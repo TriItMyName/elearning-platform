@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import com.weblearning.entity.enums.CourseStatus;
+
 @Entity
 @Table(name = "courses")
 @Data
@@ -39,6 +41,9 @@ public class Course {
 
     @Column(nullable = false)
     private int status;
+
+    @Column(nullable = false)
+    private CourseStatus adminStatus;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

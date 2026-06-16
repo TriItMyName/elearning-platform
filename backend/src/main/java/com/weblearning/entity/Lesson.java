@@ -35,6 +35,9 @@ public class Lesson {
     @Column(nullable = false, length = 150)
     private String title;
 
+    @Column(length = 180)
+    private String slug;
+
     @Column(nullable = false)
     private Integer lessonType;
 

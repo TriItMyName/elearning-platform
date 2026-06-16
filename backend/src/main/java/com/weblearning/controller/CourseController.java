@@ -2,7 +2,7 @@ package com.weblearning.controller;
 
 import com.weblearning.dto.course.CourseContentResponse;
 import com.weblearning.dto.course.CourseResponse;
-import com.weblearning.dto.course.EnrollmentResponse;
+import com.weblearning.dto.enrollment.EnrollmentResponse;
 import com.weblearning.dto.course.CreateCourseRequest;
 import com.weblearning.dto.course.CreateTeacherCourseRequest;
 import com.weblearning.dto.course.StudentLearningProgressResponse;

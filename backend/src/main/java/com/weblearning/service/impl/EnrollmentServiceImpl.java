@@ -1,6 +1,6 @@
 package com.weblearning.service.impl;
 
-import com.weblearning.dto.course.EnrollmentResponse;
+import com.weblearning.dto.enrollment.EnrollmentResponse;
 import com.weblearning.entity.Course;
 import com.weblearning.entity.Enrollment;
 import com.weblearning.entity.User;
@@ -66,6 +66,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         EnrollmentResponse response = new EnrollmentResponse();
         response.setEnrollmentId(enrollment.getId());
         response.setCourseId(enrollment.getCourse() != null ? enrollment.getCourse().getId() : null);
+        if (enrollment.getCourse() != null) {
+            response.setCourseTitle(enrollment.getCourse().getTitle());
+            response.setCourseSlug(enrollment.getCourse().getSlug());
+        }
         response.setProgress(enrollment.getProgress());
         response.setEnrolledAt(enrollment.getEnrolledAt());
 

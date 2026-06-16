@@ -37,19 +37,28 @@ export function useCategories(params = { page: 0, size: 100 }) {
   })
 }
 
+const SEARCH_COURSES_PARAMS = { page: 0, size: 100 } as const
+
 export function useSearchCourses(query: string) {
-  const { data } = useCourses({ page: 0, size: 100 })
-  const courses = data?.content ?? []
   const normalized = query.trim().toLowerCase()
+  const enabled = normalized.length >= 2
+
+  const { data } = useQuery({
+    queryKey: ['courses', SEARCH_COURSES_PARAMS],
+    queryFn: () => coursesApi.list(SEARCH_COURSES_PARAMS),
+    enabled,
+    staleTime: 60_000,
+  })
+
+  const courses = data?.content ?? []
 
   return {
-    data:
-      normalized.length >= 2
-        ? courses.filter(
-            (c) =>
-              c.title.toLowerCase().includes(normalized) ||
-              c.slug.toLowerCase().includes(normalized),
-          )
-        : [],
+    data: enabled
+      ? courses.filter(
+          (c) =>
+            c.title.toLowerCase().includes(normalized) ||
+            c.slug.toLowerCase().includes(normalized),
+        )
+      : [],
   }
 }

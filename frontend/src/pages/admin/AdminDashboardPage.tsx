@@ -1,117 +1,228 @@
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, FolderTree, HelpCircle, Shield, Users, Video } from 'lucide-react'
+import {
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  FolderTree,
+  HelpCircle,
+  KeyRound,
+  Shield,
+  TrendingUp,
+  UserCircle,
+  Users,
+  Video,
+} from 'lucide-react'
+import { useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 
 import { adminApi } from '@/api/admin.api'
 import { coursesApi } from '@/api/courses.api'
-import { AdminCard, AdminPageHeader } from '@/components/admin/AdminUi'
+import { DashboardActivityFeed } from '@/components/admin/dashboard/DashboardActivityFeed'
+import { DashboardCompletionRing } from '@/components/admin/dashboard/DashboardCompletionRing'
+import { DashboardEnrollmentChart } from '@/components/admin/dashboard/DashboardEnrollmentChart'
+import { DashboardHero } from '@/components/admin/dashboard/DashboardHero'
+import { type DashboardMetric } from '@/components/admin/dashboard/DashboardMetricCard'
+import { DashboardMetricsGrid } from '@/components/admin/dashboard/DashboardMetricsGrid'
+import { DashboardQuickActions } from '@/components/admin/dashboard/DashboardQuickActions'
+import { DashboardTopCourses } from '@/components/admin/dashboard/DashboardTopCourses'
+import { useDashboardEnter } from '@/components/admin/dashboard/dashboard-motion'
+import { useReportsSummary } from '@/hooks/useReports'
 
 export function AdminDashboardPage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const reportsQuery = useReportsSummary()
   const usersQuery = useQuery({
-    queryKey: ['admin', 'users', 'stats'],
+    queryKey: ['admin', 'users', 'stats', 'students'],
+    queryFn: () => adminApi.users.list({ page: 0, size: 1, role: 'STUDENT' }),
+  })
+  const accountsQuery = useQuery({
+    queryKey: ['admin', 'users', 'stats', 'all'],
     queryFn: () => adminApi.users.list({ page: 0, size: 1 }),
   })
   const rolesQuery = useQuery({
     queryKey: ['admin', 'roles'],
     queryFn: () => adminApi.roles.list(),
   })
-  const categoriesQuery = useQuery({
-    queryKey: ['admin', 'categories'],
-    queryFn: () => adminApi.categories.list(),
-  })
   const permissionsQuery = useQuery({
     queryKey: ['admin', 'permissions'],
     queryFn: () => adminApi.permissions.list(),
+  })
+  const categoriesQuery = useQuery({
+    queryKey: ['admin', 'categories'],
+    queryFn: () => adminApi.categories.list(),
   })
   const coursesQuery = useQuery({
     queryKey: ['courses', 'dashboard'],
     queryFn: () => coursesApi.list({ page: 0, size: 1 }),
   })
 
-  const stats = [
-    {
-      label: 'Học viên',
-      value: usersQuery.data?.totalElements ?? '—',
-      icon: Users,
-      to: '/admin/users',
-      color: 'text-[#f05123] bg-[#fff4f0]',
-    },
-    {
-      label: 'Khóa học',
-      value: coursesQuery.data?.totalElements ?? '—',
-      icon: BookOpen,
-      to: '/admin/courses',
-      color: 'text-blue-600 bg-blue-50',
-    },
-    {
-      label: 'Danh mục',
-      value: categoriesQuery.data?.length ?? '—',
-      icon: FolderTree,
-      to: '/admin/categories',
-      color: 'text-violet-600 bg-violet-50',
-    },
-    {
-      label: 'Vai trò',
-      value: rolesQuery.data?.length ?? '—',
-      icon: Shield,
-      to: '/admin/roles',
-      color: 'text-emerald-600 bg-emerald-50',
-    },
-    {
-      label: 'Quyền hạn',
-      value: permissionsQuery.data?.length ?? '—',
-      icon: Shield,
-      to: '/admin/permissions',
-      color: 'text-amber-600 bg-amber-50',
-    },
+  const isLoading =
+    reportsQuery.isLoading ||
+    usersQuery.isLoading ||
+    accountsQuery.isLoading ||
+    coursesQuery.isLoading ||
+    categoriesQuery.isLoading ||
+    rolesQuery.isLoading ||
+    permissionsQuery.isLoading
+
+  const contentReady = !isLoading
+  useDashboardEnter(containerRef, contentReady)
+
+  const reports = reportsQuery.data
+
+  const metrics = useMemo<DashboardMetric[]>(() => {
+    const students = usersQuery.data?.totalElements ?? reports?.totalStudents ?? 0
+    const courses = coursesQuery.data?.totalElements ?? reports?.totalCourses ?? 0
+    const categories = categoriesQuery.data?.length ?? 0
+    const roles = rolesQuery.data?.length ?? 0
+    const accounts = accountsQuery.data?.totalElements ?? 0
+    const permissions = permissionsQuery.data?.length ?? 0
+
+    return [
+      {
+        id: 'students',
+        label: 'Học viên',
+        value: students,
+        icon: Users,
+        to: '/admin/users',
+        trend: 12,
+        accent: 'orange',
+      },
+      {
+        id: 'courses',
+        label: 'Khóa học',
+        value: courses,
+        icon: BookOpen,
+        to: '/admin/courses',
+        trend: 8,
+        accent: 'blue',
+      },
+      {
+        id: 'active-enrollments',
+        label: 'Đăng ký đang học',
+        value: reports?.activeEnrollments ?? 0,
+        icon: TrendingUp,
+        to: '/admin/reports',
+        trend: 18,
+        accent: 'emerald',
+      },
+      {
+        id: 'categories',
+        label: 'Danh mục',
+        value: categories,
+        icon: FolderTree,
+        to: '/admin/categories',
+        accent: 'violet',
+      },
+      {
+        id: 'roles',
+        label: 'Vai trò',
+        value: roles,
+        icon: Shield,
+        to: '/admin/roles',
+        accent: 'violet',
+      },
+      {
+        id: 'completion-rate',
+        label: 'Tỷ lệ hoàn thành',
+        value: reports?.completionRate ?? 0,
+        suffix: '%',
+        icon: BarChart3,
+        to: '/admin/reports',
+        trend: 5,
+        accent: 'emerald',
+      },
+      {
+        id: 'quiz-attempts',
+        label: 'Lượt làm quiz',
+        value: reports?.quizAttempts ?? 0,
+        icon: HelpCircle,
+        to: '/admin/quizzes',
+        trend: 22,
+        accent: 'amber',
+      },
+      {
+        id: 'assignments',
+        label: 'Bài tập đã nộp',
+        value: reports?.assignmentSubmissions ?? 0,
+        icon: ClipboardList,
+        to: '/admin/assignments',
+        trend: 14,
+        accent: 'rose',
+      },
+      {
+        id: 'accounts',
+        label: 'Tài khoản hệ thống',
+        value: accounts,
+        icon: UserCircle,
+        to: '/admin/accounts',
+        trend: 6,
+        accent: 'blue',
+      },
+      {
+        id: 'permissions',
+        label: 'Quyền hệ thống',
+        value: permissions,
+        icon: KeyRound,
+        to: '/admin/roles',
+        accent: 'amber',
+      },
+    ]
+  }, [
+    usersQuery.data,
+    accountsQuery.data,
+    coursesQuery.data,
+    categoriesQuery.data,
+    rolesQuery.data,
+    permissionsQuery.data,
+    reports,
+  ])
+
+  const shortcuts = [
+    { to: '/admin/courses', label: 'Khóa học', desc: 'Tạo và xuất bản khóa học mới', icon: BookOpen },
+    { to: '/admin/lessons', label: 'Bài học', desc: 'Chương, video và nội dung bài giảng', icon: Video },
+    { to: '/admin/quizzes', label: 'Quiz', desc: 'Câu hỏi trắc nghiệm và điểm đạt', icon: HelpCircle },
+    { to: '/admin/assignments', label: 'Bài tập', desc: 'Giao bài và hạn nộp cho học viên', icon: ClipboardList },
+    { to: '/admin/categories', label: 'Danh mục', desc: 'Phân loại khóa học trên trang chủ', icon: FolderTree },
+    { to: '/admin/reports', label: 'Báo cáo', desc: 'Thống kê chi tiết và xuất dữ liệu', icon: BarChart3 },
   ]
 
   return (
-    <div>
-      <AdminPageHeader
-        title="Tổng quan"
-        description="Quản trị hệ thống e-learning WebLearning."
-      />
+    <div ref={containerRef} className="space-y-6">
+      <DashboardHero />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {stats.map(({ label, value, icon: Icon, to, color }) => (
-          <Link key={label} to={to}>
-            <AdminCard className="p-5 transition hover:border-[#f05123]/30 hover:shadow-md">
-              <div className={`inline-flex rounded-xl p-2.5 ${color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <p className="mt-4 text-xs font-medium uppercase tracking-wide text-[#999]">
-                {label}
-              </p>
-              <p className="mt-1 text-2xl font-bold text-[#242424]">{value}</p>
-            </AdminCard>
+      <DashboardMetricsGrid metrics={metrics} ready={contentReady} loading={isLoading} />
+
+      {reports ? (
+        <>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <DashboardEnrollmentChart data={reports.enrollmentTrend ?? []} ready={contentReady} />
+            </div>
+            <DashboardCompletionRing
+              percent={reports.completionRate}
+              quizAttempts={reports.quizAttempts}
+              assignmentSubmissions={reports.assignmentSubmissions}
+              ready={contentReady}
+            />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <DashboardTopCourses courses={reports.topCourses} />
+            <DashboardActivityFeed items={reports.recentActivity} />
+          </div>
+        </>
+      ) : reportsQuery.isError ? (
+        <div className="rounded-2xl border border-dashed border-[#ececec] bg-white px-6 py-10 text-center">
+          <p className="text-sm text-[#6b7280]">Không tải được dữ liệu báo cáo.</p>
+          <Link to="/admin/reports" className="mt-3 inline-block text-sm font-semibold text-[#f05123] hover:underline">
+            Mở trang báo cáo
           </Link>
-        ))}
-      </div>
-
-      <AdminCard className="mt-6 p-6">
-        <h2 className="text-base font-bold text-[#242424]">Quản lý nội dung</h2>
-        <p className="mt-1 text-sm text-[#666]">
-          Tạo khóa học, chương, bài học, quiz và bài tập qua các module bên dưới.
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { to: '/admin/courses', label: 'Khóa học', icon: BookOpen },
-            { to: '/admin/lessons', label: 'Bài học', icon: Video },
-            { to: '/admin/quizzes', label: 'Quiz', icon: HelpCircle },
-            { to: '/admin/categories', label: 'Danh mục', icon: FolderTree },
-          ].map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              className="flex items-center gap-3 rounded-xl border border-[#e8e8e8] bg-white px-4 py-3 text-sm font-medium text-[#444] hover:border-[#f05123]/30 hover:text-[#f05123]"
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          ))}
         </div>
-      </AdminCard>
+      ) : null}
+
+      <DashboardQuickActions actions={shortcuts} />
     </div>
   )
 }

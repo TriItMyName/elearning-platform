@@ -4,19 +4,31 @@ import { useState } from 'react'
 
 import { adminApi } from '@/api/admin.api'
 import {
+  AdminBadge,
   AdminCard,
+  AdminChecklistItem,
+  AdminEmptyRow,
+  AdminIconButton,
   AdminModal,
+  AdminModalFooter,
   AdminPageHeader,
   AdminTable,
+  AdminTableBody,
+  AdminTableHead,
   AdminTableWrap,
+  AdminTd,
+  AdminTh,
+  AdminTr,
 } from '@/components/admin/AdminUi'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { getErrorMessage } from '@/lib/errors'
 import { notify } from '@/lib/notify'
 import type { AdminRole } from '@/types/admin'
 
 export function AdminRolesPage() {
+  const { confirm, ConfirmDialogHost } = useConfirmDialog()
   const [createOpen, setCreateOpen] = useState(false)
   const [editRole, setEditRole] = useState<AdminRole | null>(null)
   const [permRole, setPermRole] = useState<AdminRole | null>(null)
@@ -46,10 +58,10 @@ export function AdminRolesPage() {
   return (
     <div>
       <AdminPageHeader
-        title="Quản lý vai trò"
-        description="CRUD vai trò và gán quyền qua /api/admin/roles"
+        title="Vai trò & quyền"
+        description="Định nghĩa vai trò người dùng và phân quyền truy cập tính năng."
         action={
-          <Button className="!bg-[#f05123]" onClick={() => setCreateOpen(true)}>
+          <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             Thêm vai trò
           </Button>
@@ -59,75 +71,89 @@ export function AdminRolesPage() {
       <AdminCard>
         <AdminTableWrap>
           <AdminTable>
-            <thead className="bg-[#fafafa] text-left text-xs font-semibold uppercase tracking-wide text-[#999]">
+            <AdminTableHead>
               <tr>
-                <th className="px-4 py-3">Tên vai trò</th>
-                <th className="px-4 py-3">Quyền hạn</th>
-                <th className="px-4 py-3 text-right">Thao tác</th>
+                <AdminTh>Tên vai trò</AdminTh>
+                <AdminTh>Quyền hạn</AdminTh>
+                <AdminTh align="right">Thao tác</AdminTh>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f0f0f0]">
+            </AdminTableHead>
+            <AdminTableBody>
               {rolesQuery.isLoading ? (
-                <tr><td colSpan={3} className="px-4 py-10 text-center text-[#999]">Đang tải...</td></tr>
+                <AdminEmptyRow colSpan={3} message="Đang tải..." />
               ) : roles.length === 0 ? (
-                <tr><td colSpan={3} className="px-4 py-10 text-center text-[#999]">Chưa có vai trò</td></tr>
+                <AdminEmptyRow colSpan={3} message="Chưa có vai trò nào." />
               ) : (
                 roles.map((role) => (
-                  <tr key={role.id} className="hover:bg-[#fafafa]">
-                    <td className="px-4 py-3 font-semibold">{role.name}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
+                  <AdminTr key={role.id}>
+                    <AdminTd className="font-semibold text-[#111827]">{role.name}</AdminTd>
+                    <AdminTd>
+                      <div className="flex flex-wrap gap-1.5">
                         {role.permissions?.length ? (
-                          role.permissions.map((p) => (
-                            <span key={p.id} className="rounded bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                              {p.name}
-                            </span>
+                          role.permissions.map((permission) => (
+                            <AdminBadge key={permission}>{permission}</AdminBadge>
                           ))
                         ) : (
-                          <span className="text-xs text-[#999]">Chưa gán quyền</span>
+                          <span className="text-xs text-[#9ca3af]">Chưa gán quyền</span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <button type="button" title="Gán quyền" onClick={() => setPermRole(role)} className="rounded-lg p-2 text-[#666] hover:bg-[#f0f0f0]">
+                    </AdminTd>
+                    <AdminTd align="right">
+                      <div className="flex justify-end gap-0.5">
+                        <AdminIconButton title="Gán quyền" onClick={() => setPermRole(role)}>
                           <KeyRound className="h-4 w-4" />
-                        </button>
-                        <button type="button" onClick={() => setEditRole(role)} className="rounded-lg p-2 text-[#666] hover:bg-[#f0f0f0]">
+                        </AdminIconButton>
+                        <AdminIconButton title="Sửa" onClick={() => setEditRole(role)}>
                           <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`Xóa vai trò "${role.name}"?`)) deleteMutation.mutate(role.id)
+                        </AdminIconButton>
+                        <AdminIconButton
+                          title="Xóa"
+                          variant="danger"
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: 'Xóa vai trò',
+                              description: `Bạn có chắc muốn xóa vai trò "${role.name}"? Hành động này không thể hoàn tác.`,
+                              confirmLabel: 'Xóa',
+                            })
+                            if (ok) deleteMutation.mutate(role.id)
                           }}
-                          className="rounded-lg p-2 text-red-500 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </AdminIconButton>
                       </div>
-                    </td>
-                  </tr>
+                    </AdminTd>
+                  </AdminTr>
                 ))
               )}
-            </tbody>
+            </AdminTableBody>
           </AdminTable>
         </AdminTableWrap>
       </AdminCard>
 
-      <RoleFormModal open={createOpen} title="Thêm vai trò" onClose={() => setCreateOpen(false)} onSubmit={(name) => adminApi.roles.create({ name })} />
+      <RoleFormModal
+        open={createOpen}
+        title="Thêm vai trò"
+        onClose={() => setCreateOpen(false)}
+        onSubmit={(name) => adminApi.roles.create({ name })}
+      />
       {editRole ? (
         <RoleFormModal
           open
-          title={`Sửa: ${editRole.name}`}
+          title={`Sửa vai trò`}
+          description={editRole.name}
           initialName={editRole.name}
           onClose={() => setEditRole(null)}
           onSubmit={(name) => adminApi.roles.update(editRole.id, { name })}
         />
       ) : null}
       {permRole && permissionsQuery.data ? (
-        <AssignPermissionsModal role={permRole} permissions={permissionsQuery.data} onClose={() => setPermRole(null)} />
+        <AssignPermissionsModal
+          role={permRole}
+          permissions={permissionsQuery.data}
+          onClose={() => setPermRole(null)}
+        />
       ) : null}
+      <ConfirmDialogHost />
     </div>
   )
 }
@@ -135,12 +161,14 @@ export function AdminRolesPage() {
 function RoleFormModal({
   open,
   title,
+  description,
   initialName = '',
   onClose,
   onSubmit,
 }: {
   open: boolean
   title: string
+  description?: string
   initialName?: string
   onClose: () => void
   onSubmit: (name: string) => Promise<unknown>
@@ -162,17 +190,27 @@ function RoleFormModal({
     <AdminModal
       open={open}
       title={title}
+      description={description}
       onClose={onClose}
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button className="!bg-[#f05123]" isLoading={mutation.isPending} onClick={() => mutation.mutate()}>Lưu</Button>
-        </>
+        <AdminModalFooter
+          onCancel={onClose}
+          onSubmit={() => mutation.mutate()}
+          isLoading={mutation.isPending}
+        />
       }
     >
       <Input label="Tên vai trò" value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: MODERATOR" />
     </AdminModal>
   )
+}
+
+function getRolePermissionIds(
+  role: AdminRole,
+  permissions: { id: number; name: string }[],
+): Set<number> {
+  const roleNames = new Set(role.permissions)
+  return new Set(permissions.filter((p) => roleNames.has(p.name)).map((p) => p.id))
 }
 
 function AssignPermissionsModal({
@@ -186,7 +224,7 @@ function AssignPermissionsModal({
 }) {
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<number>>(
-    new Set(role.permissions.map((p) => p.id)),
+    () => getRolePermissionIds(role, permissions),
   )
 
   const mutation = useMutation({
@@ -202,30 +240,30 @@ function AssignPermissionsModal({
   return (
     <AdminModal
       open
-      title={`Gán quyền: ${role.name}`}
+      title="Gán quyền"
+      description={`Chọn quyền cho vai trò ${role.name}.`}
       onClose={onClose}
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button className="!bg-[#f05123]" isLoading={mutation.isPending} onClick={() => mutation.mutate()}>Lưu</Button>
-        </>
+        <AdminModalFooter
+          onCancel={onClose}
+          onSubmit={() => mutation.mutate()}
+          isLoading={mutation.isPending}
+        />
       }
     >
-      <div className="max-h-64 space-y-2 overflow-y-auto">
+      <div className="max-h-72 space-y-2 overflow-y-auto">
         {permissions.map((perm) => (
-          <label key={perm.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#f0f0f0] px-3 py-2 hover:bg-[#fafafa]">
-            <input
-              type="checkbox"
-              checked={selected.has(perm.id)}
-              onChange={(e) => {
-                const next = new Set(selected)
-                if (e.target.checked) next.add(perm.id)
-                else next.delete(perm.id)
-                setSelected(next)
-              }}
-            />
-            <span className="text-sm font-medium">{perm.name}</span>
-          </label>
+          <AdminChecklistItem
+            key={perm.id}
+            label={perm.name}
+            checked={selected.has(perm.id)}
+            onChange={(checked) => {
+              const next = new Set(selected)
+              if (checked) next.add(perm.id)
+              else next.delete(perm.id)
+              setSelected(next)
+            }}
+          />
         ))}
       </div>
     </AdminModal>

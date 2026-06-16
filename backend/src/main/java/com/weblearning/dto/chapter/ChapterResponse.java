@@ -11,5 +11,6 @@ public class ChapterResponse {
     private Long id;
     private Long courseId;
     private String title;
+    private String slug;
     private Integer orderIndex;
 }

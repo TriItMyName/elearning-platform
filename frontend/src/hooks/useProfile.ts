@@ -7,12 +7,14 @@ import type { AuthUser } from '@/types/auth'
 export const profileQueryKey = ['profile'] as const
 
 function toAuthUser(profile: Awaited<ReturnType<typeof profileApi.getProfile>>): AuthUser {
+  const existing = tokenService.getUser()
   return {
     id: profile.id,
     username: profile.username,
     email: profile.email,
     fullName: profile.fullName,
-    active: profile.active,
+    roles: existing?.roles ?? [],
+    permissions: existing?.permissions,
   }
 }
 

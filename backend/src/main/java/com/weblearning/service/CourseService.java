@@ -31,6 +31,12 @@ public interface CourseService {
 
     Page<CourseResponse> getCoursesByInstructor(User instructor, Pageable pageable);
 
+    List<CourseResponse> getCoursesByStudent(User student);
+
+    CourseContentResponse getCourseContentForInstructor(Long id, User instructor);
+
+    CourseContentResponse getCourseContentForStudent(Long id, User student);
+
     CourseResponse createForInstructor(Course course, User instructor);
 
     CourseResponse updateForInstructor(Long id, Course course, User instructor);

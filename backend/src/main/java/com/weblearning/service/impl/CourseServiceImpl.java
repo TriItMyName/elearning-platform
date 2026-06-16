@@ -17,6 +17,7 @@ import com.weblearning.repository.EnrollmentRepository;
 import com.weblearning.repository.LessonRepository;
 import com.weblearning.repository.QuizRepository;
 import com.weblearning.service.CourseService;
+import com.weblearning.utils.StringUnitls;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -54,6 +55,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseResponse create(Course course) {
+        course.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         return toCourseResponse(courseRepository.save(course));
     }
 
@@ -114,7 +116,7 @@ public class CourseServiceImpl implements CourseService {
         Course existing = courseRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
         existing.setTitle(course.getTitle());
-        existing.setSlug(course.getSlug());
+        existing.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         existing.setDescription(course.getDescription());
         existing.setCategory(course.getCategory());
         existing.setInstructor(course.getInstructor());
@@ -146,8 +148,34 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public List<CourseResponse> getCoursesByStudent(User student) {
+        return enrollmentRepository.findByStudentIdAndDeletedFalseOrderByEnrolledAtDesc(student.getId())
+                .stream()
+                .map(Enrollment::getCourse)
+                .filter(course -> course != null && !course.isDeleted())
+                .map(this::toCourseResponse)
+                .toList();
+    }
+
+    @Override
+    public CourseContentResponse getCourseContentForInstructor(Long id, User instructor) {
+        Course course = getOwnedCourse(id, instructor);
+        return toCourseContentResponse(course);
+    }
+
+    @Override
+    public CourseContentResponse getCourseContentForStudent(Long id, User student) {
+        Course course = courseRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
+        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(id, student.getId())
+                .orElseThrow(() -> new SecurityException("You are not enrolled in this course"));
+        return toCourseContentResponse(course);
+    }
+
+    @Override
     public CourseResponse createForInstructor(Course course, User instructor) {
         course.setInstructor(instructor);
+        course.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         return toCourseResponse(courseRepository.save(course));
     }
 
@@ -159,7 +187,7 @@ public class CourseServiceImpl implements CourseService {
             throw new SecurityException("You are not the instructor of this course");
         }
         existing.setTitle(course.getTitle());
-        existing.setSlug(course.getSlug());
+        existing.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         existing.setDescription(course.getDescription());
         existing.setCategory(course.getCategory());
         existing.setStatus(course.getStatus());

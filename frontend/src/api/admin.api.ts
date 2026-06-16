@@ -8,11 +8,9 @@ import type {
   AssignPermissionsPayload,
   AssignRolesPayload,
   CreateCategoryPayload,
-  CreatePermissionPayload,
   CreateRolePayload,
   CreateUserPayload,
   UpdateCategoryPayload,
-  UpdatePermissionPayload,
   UpdateRolePayload,
   UpdateUserPayload,
   UpdateUserStatusPayload,
@@ -65,15 +63,6 @@ export const adminApi = {
   permissions: {
     list() {
       return apiClient.get<AdminPermission[]>('/admin/permissions').then((r) => r.data)
-    },
-    create(payload: CreatePermissionPayload) {
-      return apiClient.post<AdminPermission>('/admin/permissions', payload).then((r) => r.data)
-    },
-    update(id: number, payload: UpdatePermissionPayload) {
-      return apiClient.put<AdminPermission>(`/admin/permissions/${id}`, payload).then((r) => r.data)
-    },
-    delete(id: number) {
-      return apiClient.delete(`/admin/permissions/${id}`)
     },
   },
 

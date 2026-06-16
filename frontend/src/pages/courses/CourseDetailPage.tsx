@@ -1,18 +1,33 @@
-import { BookOpen, Calendar, FolderOpen } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import { BookOpen, Calendar, FolderOpen, Play } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
 import { chaptersApi } from '@/api/chapters.api'
 import { CourseGrid } from '@/components/site/CourseItem'
+import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/auth/auth.context'
 import { COURSE_STATUS_LABEL } from '@/types/course'
 import { useCourseBySlug, useCourses } from '@/hooks/useCourses'
+import {
+  useContinueLearnUrl,
+  useCourseEnrollment,
+  useEnrollCourse,
+} from '@/hooks/useEnrollment'
+import { notify } from '@/lib/notify'
 
 export function CourseDetailPage() {
   const { slug = '' } = useParams()
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const { data: coursesPage } = useCourses({ page: 0, size: 100 })
   const allCourses = coursesPage?.content ?? []
   const match = allCourses.find((c) => c.slug === slug)
   const { data: course, isLoading } = useCourseBySlug(slug, allCourses)
+
+  const enrollmentQuery = useCourseEnrollment(match?.id ?? null)
+  const enrolled = enrollmentQuery.data === true
+  const enrollMutation = useEnrollCourse()
+  const continueUrl = useContinueLearnUrl(course)
 
   const chaptersQuery = useQuery({
     queryKey: ['chapters', match?.id],
@@ -21,6 +36,16 @@ export function CourseDetailPage() {
   })
 
   const related = allCourses.filter((c) => c.slug !== slug && c.categoryId === match?.categoryId).slice(0, 4)
+
+  const handleEnroll = () => {
+    if (!course) return
+    enrollMutation.mutate(course.id, {
+      onSuccess: () => {
+        notify.success('Đã ghi danh khóa học')
+        navigate(`/learn/${slug}`)
+      },
+    })
+  }
 
   if (isLoading) {
     return (
@@ -73,6 +98,27 @@ export function CourseDetailPage() {
               <Calendar className="h-4 w-4" />
               {new Date(course.createdAt).toLocaleDateString('vi-VN')}
             </span>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {!isAuthenticated ? (
+              <Link to="/login" state={{ from: `/learn/${slug}` }}>
+                <Button>Đăng nhập để học</Button>
+              </Link>
+            ) : enrollmentQuery.isLoading ? (
+              <Button disabled>Đang kiểm tra ghi danh...</Button>
+            ) : enrolled ? (
+              <Link to={continueUrl}>
+                <Button>
+                  <Play className="mr-1.5 h-4 w-4" />
+                  {continueUrl.includes('lesson=') ? 'Tiếp tục học' : 'Vào học'}
+                </Button>
+              </Link>
+            ) : (
+              <Button onClick={handleEnroll} disabled={enrollMutation.isPending}>
+                {enrollMutation.isPending ? 'Đang ghi danh...' : 'Ghi danh khóa học'}
+              </Button>
+            )}
           </div>
 
           <div>

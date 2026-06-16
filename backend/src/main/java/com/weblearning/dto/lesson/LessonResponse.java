@@ -14,6 +14,7 @@ public class LessonResponse {
     private Long id;
     private Long chapterId;
     private String title;
+    private String slug;
     private Integer lessonType;
     private String videoUrl;
     private String documentUrl;

@@ -12,6 +12,7 @@ import com.weblearning.repository.LessonRepository;
 import com.weblearning.repository.QuizRepository;
 import com.weblearning.service.CloudinaryUploadService;
 import com.weblearning.service.LessonService;
+import com.weblearning.utils.StringUnitls;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -76,6 +77,7 @@ public class LessonServiceImpl implements LessonService {
     public LessonResponse createForInstructor(Long courseId, Long chapterId, Lesson lesson, User instructor) {
         Chapter chapter = getOwnedChapter(courseId, chapterId, instructor);
         lesson.setChapter(chapter);
+        lesson.setSlug(StringUnitls.toSlug(lesson.getTitle()));
         return toLessonResponse(lessonRepository.save(lesson));
     }
 
@@ -84,6 +86,7 @@ public class LessonServiceImpl implements LessonService {
         getOwnedChapter(courseId, chapterId, instructor);
         Lesson existing = getLessonInChapter(chapterId, lessonId);
         existing.setTitle(lesson.getTitle());
+        existing.setSlug(StringUnitls.toSlug(lesson.getTitle()));
         existing.setLessonType(lesson.getLessonType());
         existing.setVideoUrl(lesson.getVideoUrl());
         existing.setDocumentUrl(lesson.getDocumentUrl());
@@ -182,6 +185,7 @@ public class LessonServiceImpl implements LessonService {
         response.setId(lesson.getId());
         response.setChapterId(lesson.getChapter() != null ? lesson.getChapter().getId() : null);
         response.setTitle(lesson.getTitle());
+        response.setSlug(lesson.getSlug());
         response.setLessonType(lesson.getLessonType());
         response.setVideoUrl(lesson.getVideoUrl());
         response.setDocumentUrl(lesson.getDocumentUrl());
