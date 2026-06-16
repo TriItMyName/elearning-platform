@@ -5,6 +5,7 @@ import com.weblearning.entity.Chapter;
 import com.weblearning.entity.Lesson;
 import com.weblearning.entity.User;
 import com.weblearning.repository.ChapterRepository;
+import com.weblearning.repository.EnrollmentRepository;
 import com.weblearning.repository.LessonRepository;
 import com.weblearning.service.CloudinaryUploadService;
 import com.weblearning.service.LessonService;
@@ -26,6 +27,7 @@ public class LessonServiceImpl implements LessonService {
 
     private final LessonRepository lessonRepository;
     private final ChapterRepository chapterRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final CloudinaryUploadService cloudinaryUploadService;
 
     @Override
@@ -41,6 +43,29 @@ public class LessonServiceImpl implements LessonService {
         getOwnedChapter(courseId, chapterId, instructor);
         return lessonRepository.findByChapterIdAndDeletedFalse(chapterId, pageable)
                 .map(this::toLessonResponse);
+    }
+
+    @Override
+    public Page<LessonResponse> getByChapterForStudent(Long courseId, Long chapterId, User student, Pageable pageable) {
+        getEnrolledChapter(courseId, chapterId, student);
+        return lessonRepository.findByChapterIdAndDeletedFalse(chapterId, pageable)
+                .map(this::toLessonResponse);
+    }
+
+    @Override
+    public LessonResponse getLessonForStudent(Long courseId, Long chapterId, Long lessonId, User student) {
+        getEnrolledChapter(courseId, chapterId, student);
+        return toLessonResponse(getLessonInChapter(chapterId, lessonId));
+    }
+
+    @Override
+    public String getVideoUrlForStudent(Long courseId, Long chapterId, Long lessonId, User student) {
+        getEnrolledChapter(courseId, chapterId, student);
+        Lesson lesson = getLessonInChapter(chapterId, lessonId);
+        if (lesson.getVideoUrl() == null || lesson.getVideoUrl().trim().isEmpty()) {
+            throw new IllegalArgumentException("Lesson does not have a video");
+        }
+        return lesson.getVideoUrl();
     }
 
     @Override
@@ -109,16 +134,29 @@ public class LessonServiceImpl implements LessonService {
     }
 
     private Chapter getOwnedChapter(Long courseId, Long chapterId, User instructor) {
+        Chapter chapter = getChapterInCourse(courseId, chapterId);
+        if (chapter.getCourse().getInstructor() == null
+                || !chapter.getCourse().getInstructor().getId().equals(instructor.getId())) {
+            throw new SecurityException("You are not the instructor of this course");
+        }
+
+        return chapter;
+    }
+
+    private Chapter getEnrolledChapter(Long courseId, Long chapterId, User student) {
+        Chapter chapter = getChapterInCourse(courseId, chapterId);
+        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(courseId, student.getId())
+                .orElseThrow(() -> new SecurityException("You are not enrolled in this course"));
+
+        return chapter;
+    }
+
+    private Chapter getChapterInCourse(Long courseId, Long chapterId) {
         Chapter chapter = chapterRepository.findByIdAndDeletedFalse(chapterId)
                 .orElseThrow(() -> new EntityNotFoundException("Chapter not found: " + chapterId));
 
         if (chapter.getCourse() == null || !chapter.getCourse().getId().equals(courseId)) {
             throw new EntityNotFoundException("Chapter not found in course: " + courseId);
-        }
-
-        if (chapter.getCourse().getInstructor() == null
-                || !chapter.getCourse().getInstructor().getId().equals(instructor.getId())) {
-            throw new SecurityException("You are not the instructor of this course");
         }
 
         return chapter;

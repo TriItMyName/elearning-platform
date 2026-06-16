@@ -14,6 +14,12 @@ public interface LessonService {
 
     Page<LessonResponse> getByChapterForInstructor(Long courseId, Long chapterId, User instructor, Pageable pageable);
 
+    Page<LessonResponse> getByChapterForStudent(Long courseId, Long chapterId, User student, Pageable pageable);
+
+    LessonResponse getLessonForStudent(Long courseId, Long chapterId, Long lessonId, User student);
+
+    String getVideoUrlForStudent(Long courseId, Long chapterId, Long lessonId, User student);
+
     LessonResponse createForInstructor(Long courseId, Long chapterId, Lesson lesson, User instructor);
 
     LessonResponse updateForInstructor(Long courseId, Long chapterId, Long lessonId, Lesson lesson, User instructor);

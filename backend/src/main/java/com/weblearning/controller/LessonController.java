@@ -30,17 +30,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/courses/{courseId}/chapters/{chapterId}/lessons/teacher")
+@RequestMapping("/api/courses/{courseId}/chapters/{chapterId}/lessons")
 @RequiredArgsConstructor
 public class LessonController {
 
     private final LessonService lessonService;
     private final AuthService authService;
 
-    @GetMapping
+    @GetMapping("/teacher")
     public ResponseEntity<Page<LessonResponse>> getByChapter(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -61,7 +62,67 @@ public class LessonController {
         }
     }
 
-    @PostMapping
+    @GetMapping("/student")
+    public ResponseEntity<Page<LessonResponse>> getByChapterForStudent(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "orderIndex") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            Pageable pageable = createPageable(page, size, sortBy, direction);
+            return ResponseEntity.ok(lessonService.getByChapterForStudent(courseId, chapterId, student, pageable));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/student/{lessonId}")
+    public ResponseEntity<LessonResponse> getLessonForStudent(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            @PathVariable Long lessonId,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(lessonService.getLessonForStudent(courseId, chapterId, lessonId, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/student/{lessonId}/video-stream")
+    public ResponseEntity<Void> streamVideoForStudent(
+            @PathVariable Long courseId,
+            @PathVariable Long chapterId,
+            @PathVariable Long lessonId,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            String videoUrl = lessonService.getVideoUrlForStudent(courseId, chapterId, lessonId, student);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create(videoUrl))
+                    .build();
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/teacher")
     public ResponseEntity<LessonResponse> create(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -79,7 +140,7 @@ public class LessonController {
         }
     }
 
-    @PutMapping("/{lessonId}")
+    @PutMapping("/teacher/{lessonId}")
     public ResponseEntity<LessonResponse> update(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -97,7 +158,7 @@ public class LessonController {
         }
     }
 
-    @DeleteMapping("/{lessonId}")
+    @DeleteMapping("/teacher/{lessonId}")
     public ResponseEntity<Void> delete(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -115,7 +176,7 @@ public class LessonController {
         }
     }
 
-    @PatchMapping("/reorder")
+    @PatchMapping("/teacher/reorder")
     public ResponseEntity<List<LessonResponse>> reorder(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -134,7 +195,7 @@ public class LessonController {
         }
     }
 
-    @PostMapping("/{lessonId}/upload-video")
+    @PostMapping("/teacher/{lessonId}/upload-video")
     public ResponseEntity<LessonResponse> uploadVideo(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
