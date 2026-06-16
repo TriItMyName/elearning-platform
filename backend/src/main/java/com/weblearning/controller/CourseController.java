@@ -58,12 +58,17 @@ public class CourseController {
 
     @GetMapping
     public ResponseEntity<Page<CourseResponse>> getAll(
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
         Pageable pageable = createPageable(page, size, sortBy, direction);
+        if (authentication != null && authentication.isAuthenticated()) {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(courseService.getAllForStudent(student, pageable));
+        }
         return ResponseEntity.ok(courseService.getAll(pageable));
     }
 
@@ -78,6 +83,22 @@ public class CourseController {
         User instructor = getCurrentUser(authentication);
         Pageable pageable = createPageable(page, size, sortBy, direction);
         return ResponseEntity.ok(courseService.getCoursesByInstructor(instructor, pageable));
+    }
+
+    @PostMapping("/{id}/enroll")
+    public ResponseEntity<EnrollmentResponse> enrollCourse(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(enrollmentService.enrollCourseForStudent(id, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}")

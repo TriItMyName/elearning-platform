@@ -11,6 +11,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,6 +29,26 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    public EnrollmentResponse enrollCourseForStudent(Long courseId, User student) {
+        Course course = courseRepository.findByIdAndDeletedFalse(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));
+
+        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(courseId, student.getId())
+                .ifPresent(enrollment -> {
+                    throw new IllegalArgumentException("Student already enrolled in this course");
+                });
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setCourse(course);
+        enrollment.setStudent(student);
+        enrollment.setEnrolledAt(LocalDateTime.now());
+        enrollment.setProgress(0F);
+        enrollment.setDeleted(false);
+
+        return toResponse(enrollmentRepository.save(enrollment));
     }
 
     private Course getOwnedCourse(Long courseId, User instructor) {

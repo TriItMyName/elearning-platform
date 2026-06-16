@@ -2,8 +2,10 @@ package com.weblearning.service.impl;
 
 import com.weblearning.dto.course.CourseResponse;
 import com.weblearning.entity.Course;
+import com.weblearning.entity.Enrollment;
 import com.weblearning.entity.User;
 import com.weblearning.repository.CourseRepository;
+import com.weblearning.repository.EnrollmentRepository;
 import com.weblearning.service.CourseService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +16,15 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     private CourseResponse toCourseResponse(Course course) {
         CourseResponse response = new CourseResponse();
@@ -56,6 +61,23 @@ public class CourseServiceImpl implements CourseService {
     public Page<CourseResponse> getAll(Pageable pageable) {
         return courseRepository.findByDeletedFalse(pageable)
                 .map(this::toCourseResponse);
+    }
+
+    @Override
+    public Page<CourseResponse> getAllForStudent(User student, Pageable pageable) {
+        Set<Long> enrolledCourseIds = enrollmentRepository.findByStudentIdAndDeletedFalse(student.getId())
+                .stream()
+                .map(Enrollment::getCourse)
+                .filter(course -> course != null && course.getId() != null)
+                .map(Course::getId)
+                .collect(Collectors.toSet());
+
+        return courseRepository.findByDeletedFalse(pageable)
+                .map(course -> {
+                    CourseResponse response = toCourseResponse(course);
+                    response.setEnrolled(enrolledCourseIds.contains(course.getId()));
+                    return response;
+                });
     }
 
     @Override
