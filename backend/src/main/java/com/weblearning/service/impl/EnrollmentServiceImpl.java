@@ -36,43 +36,19 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         Course course = courseRepository.findByIdAndDeletedFalse(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));
 
-        Enrollment enrollment = enrollmentRepository.findByCourseIdAndStudentId(courseId, student.getId())
-                .map(existing -> restoreEnrollment(existing, course, student))
-                .orElseGet(() -> createEnrollment(course, student));
+        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(courseId, student.getId())
+                .ifPresent(enrollment -> {
+                    throw new IllegalArgumentException("Student already enrolled in this course");
+                });
 
-        return toResponse(enrollmentRepository.save(enrollment));
-    }
-
-    @Override
-    public List<EnrollmentResponse> getEnrollmentsForStudent(User student) {
-        return enrollmentRepository.findByStudentIdAndDeletedFalseOrderByEnrolledAtDesc(student.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    private Enrollment createEnrollment(Course course, User student) {
         Enrollment enrollment = new Enrollment();
         enrollment.setCourse(course);
         enrollment.setStudent(student);
         enrollment.setEnrolledAt(LocalDateTime.now());
         enrollment.setProgress(0F);
         enrollment.setDeleted(false);
-        return enrollment;
-    }
 
-    private Enrollment restoreEnrollment(Enrollment enrollment, Course course, User student) {
-        if (!enrollment.isDeleted()) {
-            return enrollment;
-        }
-
-        enrollment.setCourse(course);
-        enrollment.setStudent(student);
-        enrollment.setEnrolledAt(LocalDateTime.now());
-        enrollment.setProgress(enrollment.getProgress() != null ? enrollment.getProgress() : 0F);
-        enrollment.setDeleted(false);
-        enrollment.setDeletedAt(null);
-        return enrollment;
+        return toResponse(enrollmentRepository.save(enrollment));
     }
 
     private Course getOwnedCourse(Long courseId, User instructor) {

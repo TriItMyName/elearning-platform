@@ -11,5 +11,5 @@ import java.util.List;
 @AllArgsConstructor
 public class CourseContentResponse {
     private CourseResponse course;
-    private List<ChapterContentResponse> chapters;
+    private List<CourseChapterContentResponse> chapters;
 }

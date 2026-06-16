@@ -1,8 +1,11 @@
 package com.weblearning.dto.lesson;
 
+import com.weblearning.dto.quiz.QuizResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,4 +21,5 @@ public class LessonResponse {
     private Integer duration;
     private String content;
     private Integer orderIndex;
+    private List<QuizResponse> quizzes;
 }

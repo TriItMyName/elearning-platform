@@ -1,7 +1,9 @@
 package com.weblearning.service;
 
 import com.weblearning.dto.quiz.QuestionResponse;
+import com.weblearning.dto.quiz.QuizAttemptResponse;
 import com.weblearning.dto.quiz.QuizResponse;
+import com.weblearning.dto.quiz.SubmitQuizRequest;
 import com.weblearning.entity.Question;
 import com.weblearning.entity.QuestionOption;
 import com.weblearning.entity.Quiz;
@@ -12,6 +14,29 @@ import java.util.List;
 
 public interface QuizService {
     List<QuizResponse> getByLessonForInstructor(Long courseId, Long chapterId, Long lessonId, User instructor);
+
+    List<QuizResponse> getByLessonForStudent(Long courseId, Long chapterId, Long lessonId, User student);
+
+    List<QuestionResponse> getQuestionsForStudent(Long courseId, Long chapterId, Long lessonId, Long quizId, User student);
+
+    QuizAttemptResponse submitForStudent(
+            Long courseId,
+            Long chapterId,
+            Long lessonId,
+            Long quizId,
+            SubmitQuizRequest request,
+            User student
+    );
+
+    List<QuizAttemptResponse> getAttemptsForStudent(User student);
+
+    List<QuizAttemptResponse> getAttemptsForQuizForStudent(
+            Long courseId,
+            Long chapterId,
+            Long lessonId,
+            Long quizId,
+            User student
+    );
 
     QuizResponse createForInstructor(Long courseId, Long chapterId, Long lessonId, Quiz quiz, User instructor);
 

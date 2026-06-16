@@ -49,6 +49,35 @@ public class NotificationServiceImpl implements NotificationService {
                 .toList();
     }
 
+    @Override
+    public List<NotificationResponse> getNotificationsForStudent(User student) {
+        return notificationRepository.findByReceiverIdAndDeletedFalseOrderByCreatedAtDesc(student.getId()).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<NotificationResponse> getCourseNotificationsForStudent(Long courseId, User student) {
+        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(courseId, student.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Enrollment not found for course: " + courseId));
+
+        return notificationRepository
+                .findByCourseIdAndReceiverIdAndDeletedFalseOrderByCreatedAtDesc(courseId, student.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public NotificationResponse markAsReadForStudent(Long notificationId, User student) {
+        Notification notification = notificationRepository
+                .findByIdAndReceiverIdAndDeletedFalse(notificationId, student.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Notification not found: " + notificationId));
+
+        notification.setIsRead(true);
+        return toResponse(notificationRepository.save(notification));
+    }
+
     private Notification createNotification(Course course, User receiver, String message, User sender) {
         Notification notification = new Notification();
         notification.setCourse(course);

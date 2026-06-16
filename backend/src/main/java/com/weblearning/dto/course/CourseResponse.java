@@ -19,4 +19,5 @@ public class CourseResponse {
     private Integer status;
     private LocalDateTime createdAt;
     private LocalDateTime upDateTime;
+    private Boolean enrolled;
 }

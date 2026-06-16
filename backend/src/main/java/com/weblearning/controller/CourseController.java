@@ -59,12 +59,17 @@ public class CourseController {
 
     @GetMapping
     public ResponseEntity<Page<CourseResponse>> getAll(
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
         Pageable pageable = createPageable(page, size, sortBy, direction);
+        if (authentication != null && authentication.isAuthenticated()) {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(courseService.getAllForStudent(student, pageable));
+        }
         return ResponseEntity.ok(courseService.getAll(pageable));
     }
 
@@ -81,42 +86,24 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCoursesByInstructor(instructor, pageable));
     }
 
-    @GetMapping("/teacher/my-courses")
-    public ResponseEntity<Page<CourseResponse>> getMyTeacherCourses(
-            Authentication authentication,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String direction
-    ) {
-        User instructor = getCurrentUser(authentication);
-        Pageable pageable = createPageable(page, size, sortBy, direction);
-        return ResponseEntity.ok(courseService.getCoursesByInstructor(instructor, pageable));
-    }
-
-    @GetMapping("/teacher/{id}/content")
-    public ResponseEntity<CourseContentResponse> getCourseContentByTeacher(
+    @PostMapping("/{id}/enroll")
+    public ResponseEntity<EnrollmentResponse> enrollCourse(
             @PathVariable Long id,
             Authentication authentication
     ) {
         try {
-            User instructor = getCurrentUser(authentication);
-            return ResponseEntity.ok(courseService.getCourseContentForInstructor(id, instructor));
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(enrollmentService.enrollCourseForStudent(id, student));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    @GetMapping("/student/my-courses")
-    public ResponseEntity<List<CourseResponse>> getMyStudentCourses(Authentication authentication) {
-        User student = getCurrentUser(authentication);
-        return ResponseEntity.ok(courseService.getCoursesByStudent(student));
-    }
-
-    @GetMapping("/student/{id}/content")
-    public ResponseEntity<CourseContentResponse> getCourseContentByStudent(
+    @GetMapping("/{id}/content/student")
+    public ResponseEntity<CourseContentResponse> getCourseContentForStudent(
             @PathVariable Long id,
             Authentication authentication
     ) {
@@ -130,24 +117,33 @@ public class CourseController {
         }
     }
 
-    @PostMapping("/{id}/enroll")
-    public ResponseEntity<EnrollmentResponse> enrollCourse(
+    @GetMapping("/{id}/progress/student")
+    public ResponseEntity<StudentLearningProgressResponse> getMyLearningProgress(
             @PathVariable Long id,
             Authentication authentication
     ) {
         try {
             User student = getCurrentUser(authentication);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(enrollmentService.enrollCourseForStudent(id, student));
+            return ResponseEntity.ok(learningProgressService.getStudentProgressForStudent(id, student));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @GetMapping("/student/enrollments")
-    public ResponseEntity<List<EnrollmentResponse>> getMyEnrollments(Authentication authentication) {
-        User student = getCurrentUser(authentication);
-        return ResponseEntity.ok(enrollmentService.getEnrollmentsForStudent(student));
+    @PostMapping("/{id}/lessons/{lessonId}/progress/student/complete")
+    public ResponseEntity<StudentLearningProgressResponse> completeLesson(
+            @PathVariable Long id,
+            @PathVariable Long lessonId,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(learningProgressService.completeLessonForStudent(id, lessonId, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
     }
 
     @PutMapping("/{id}")
