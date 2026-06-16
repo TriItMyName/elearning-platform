@@ -9,4 +9,6 @@ public interface EnrollmentService {
     List<EnrollmentResponse> getStudentsForInstructor(Long courseId, User instructor);
 
     EnrollmentResponse enrollCourseForStudent(Long courseId, User student);
+
+    List<EnrollmentResponse> getEnrollmentsForStudent(User student);
 }

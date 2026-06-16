@@ -4,9 +4,7 @@ import com.weblearning.dto.quiz.CreateQuestionOptionRequest;
 import com.weblearning.dto.quiz.CreateQuestionRequest;
 import com.weblearning.dto.quiz.CreateQuizRequest;
 import com.weblearning.dto.quiz.QuestionResponse;
-import com.weblearning.dto.quiz.QuizAttemptResponse;
 import com.weblearning.dto.quiz.QuizResponse;
-import com.weblearning.dto.quiz.SubmitQuizRequest;
 import com.weblearning.dto.quiz.UpdateQuestionRequest;
 import com.weblearning.dto.quiz.UpdateQuizRequest;
 import com.weblearning.entity.Question;
@@ -35,14 +33,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/courses/{courseId}/chapters/{chapterId}/lessons/{lessonId}/quizzes")
+@RequestMapping("/api/courses/{courseId}/chapters/{chapterId}/lessons/{lessonId}/quizzes/teacher")
 @RequiredArgsConstructor
 public class QuizController {
 
     private final QuizService quizService;
     private final AuthService authService;
 
-    @GetMapping("/teacher")
+    @GetMapping
     public ResponseEntity<List<QuizResponse>> getByLesson(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -59,90 +57,7 @@ public class QuizController {
         }
     }
 
-    @GetMapping("/student")
-    public ResponseEntity<List<QuizResponse>> getByLessonForStudent(
-            @PathVariable Long courseId,
-            @PathVariable Long chapterId,
-            @PathVariable Long lessonId,
-            Authentication authentication
-    ) {
-        try {
-            User student = getCurrentUser(authentication);
-            return ResponseEntity.ok(quizService.getByLessonForStudent(courseId, chapterId, lessonId, student));
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-    }
-
-    @GetMapping("/student/{quizId}/questions")
-    public ResponseEntity<List<QuestionResponse>> getQuestionsForStudent(
-            @PathVariable Long courseId,
-            @PathVariable Long chapterId,
-            @PathVariable Long lessonId,
-            @PathVariable Long quizId,
-            Authentication authentication
-    ) {
-        try {
-            User student = getCurrentUser(authentication);
-            return ResponseEntity.ok(quizService.getQuestionsForStudent(courseId, chapterId, lessonId, quizId, student));
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-    }
-
-    @PostMapping("/student/{quizId}/submit")
-    public ResponseEntity<QuizAttemptResponse> submitForStudent(
-            @PathVariable Long courseId,
-            @PathVariable Long chapterId,
-            @PathVariable Long lessonId,
-            @PathVariable Long quizId,
-            @Valid @RequestBody SubmitQuizRequest request,
-            Authentication authentication
-    ) {
-        try {
-            User student = getCurrentUser(authentication);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(quizService.submitForStudent(courseId, chapterId, lessonId, quizId, request, student));
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/student/attempts")
-    public ResponseEntity<List<QuizAttemptResponse>> getAttemptsForStudent(Authentication authentication) {
-        User student = getCurrentUser(authentication);
-        return ResponseEntity.ok(quizService.getAttemptsForStudent(student));
-    }
-
-    @GetMapping("/student/{quizId}/attempts")
-    public ResponseEntity<List<QuizAttemptResponse>> getAttemptsForQuizForStudent(
-            @PathVariable Long courseId,
-            @PathVariable Long chapterId,
-            @PathVariable Long lessonId,
-            @PathVariable Long quizId,
-            Authentication authentication
-    ) {
-        try {
-            User student = getCurrentUser(authentication);
-            return ResponseEntity.ok(
-                    quizService.getAttemptsForQuizForStudent(courseId, chapterId, lessonId, quizId, student)
-            );
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.notFound().build();
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-    }
-
-    @PostMapping("/teacher")
+    @PostMapping
     public ResponseEntity<QuizResponse> create(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -161,13 +76,13 @@ public class QuizController {
         }
     }
 
-    @PostMapping("/teacher/import-document")
+    @PostMapping("/import-document")
     public ResponseEntity<QuizResponse> importFromDocument(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
             @PathVariable Long lessonId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) Integer timeLimit,
+            @RequestParam Integer timeLimit,
             @RequestParam Float passScore,
             Authentication authentication
     ) {
@@ -192,7 +107,7 @@ public class QuizController {
         }
     }
 
-    @PutMapping("/teacher/{quizId}")
+    @PutMapping("/{quizId}")
     public ResponseEntity<QuizResponse> update(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -213,7 +128,7 @@ public class QuizController {
         }
     }
 
-    @DeleteMapping("/teacher/{quizId}")
+    @DeleteMapping("/{quizId}")
     public ResponseEntity<Void> delete(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -232,7 +147,7 @@ public class QuizController {
         }
     }
 
-    @GetMapping("/teacher/{quizId}/questions")
+    @GetMapping("/{quizId}/questions")
     public ResponseEntity<List<QuestionResponse>> getQuestions(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -252,7 +167,7 @@ public class QuizController {
         }
     }
 
-    @PostMapping("/teacher/{quizId}/questions")
+    @PostMapping("/{quizId}/questions")
     public ResponseEntity<QuestionResponse> createQuestion(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -281,7 +196,7 @@ public class QuizController {
         }
     }
 
-    @PutMapping("/teacher/{quizId}/questions/{questionId}")
+    @PutMapping("/{quizId}/questions/{questionId}")
     public ResponseEntity<QuestionResponse> updateQuestion(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,
@@ -312,7 +227,7 @@ public class QuizController {
         }
     }
 
-    @DeleteMapping("/teacher/{quizId}/questions/{questionId}")
+    @DeleteMapping("/{quizId}/questions/{questionId}")
     public ResponseEntity<Void> deleteQuestion(
             @PathVariable Long courseId,
             @PathVariable Long chapterId,

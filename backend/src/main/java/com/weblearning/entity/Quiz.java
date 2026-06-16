@@ -32,7 +32,7 @@ public class Quiz {
     @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
-    @Column
+    @Column(nullable = false)
     private Integer timeLimit;
 
     @Column(nullable = false)

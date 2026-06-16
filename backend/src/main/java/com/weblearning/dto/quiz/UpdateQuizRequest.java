@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateQuizRequest {
 
+    @NotNull
     @Positive
     private Integer timeLimit;
 

@@ -9,7 +9,9 @@ import java.util.Optional;
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findByCourseIdAndDeletedFalseOrderByEnrolledAtDesc(Long courseId);
 
-    List<Enrollment> findByStudentIdAndDeletedFalse(Long studentId);
+    List<Enrollment> findByStudentIdAndDeletedFalseOrderByEnrolledAtDesc(Long studentId);
+
+    Optional<Enrollment> findByCourseIdAndStudentId(Long courseId, Long studentId);
 
     Optional<Enrollment> findByCourseIdAndStudentIdAndDeletedFalse(Long courseId, Long studentId);
 

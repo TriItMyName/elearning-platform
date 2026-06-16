@@ -2,23 +2,17 @@ package com.weblearning.service.impl;
 
 import com.weblearning.dto.quiz.QuestionOptionResponse;
 import com.weblearning.dto.quiz.QuestionResponse;
-import com.weblearning.dto.quiz.QuizAttemptResponse;
 import com.weblearning.dto.quiz.QuizResponse;
-import com.weblearning.dto.quiz.SubmitQuizAnswerRequest;
-import com.weblearning.dto.quiz.SubmitQuizRequest;
 import com.weblearning.entity.Chapter;
 import com.weblearning.entity.Lesson;
 import com.weblearning.entity.Question;
 import com.weblearning.entity.QuestionOption;
 import com.weblearning.entity.Quiz;
-import com.weblearning.entity.QuizAttempt;
 import com.weblearning.entity.User;
 import com.weblearning.repository.ChapterRepository;
-import com.weblearning.repository.EnrollmentRepository;
 import com.weblearning.repository.LessonRepository;
 import com.weblearning.repository.QuestionOptionRepository;
 import com.weblearning.repository.QuestionRepository;
-import com.weblearning.repository.QuizAttemptRepository;
 import com.weblearning.repository.QuizRepository;
 import com.weblearning.service.QuizService;
 import jakarta.persistence.EntityNotFoundException;
@@ -33,9 +27,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -46,12 +37,10 @@ import java.util.zip.ZipInputStream;
 public class QuizServiceImpl implements QuizService {
 
     private final QuizRepository quizRepository;
-    private final QuizAttemptRepository quizAttemptRepository;
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final LessonRepository lessonRepository;
     private final ChapterRepository chapterRepository;
-    private final EnrollmentRepository enrollmentRepository;
 
     @Override
     public List<QuizResponse> getByLessonForInstructor(Long courseId, Long chapterId, Long lessonId, User instructor) {
@@ -59,100 +48,6 @@ public class QuizServiceImpl implements QuizService {
         return quizRepository.findByLessonIdAndDeletedFalseOrderByCreatedAtDesc(lessonId)
                 .stream()
                 .map(this::toQuizResponse)
-                .toList();
-    }
-
-    @Override
-    public List<QuizResponse> getByLessonForStudent(Long courseId, Long chapterId, Long lessonId, User student) {
-        getEnrolledLesson(courseId, chapterId, lessonId, student);
-        return quizRepository.findByLessonIdAndDeletedFalseOrderByCreatedAtDesc(lessonId)
-                .stream()
-                .map(this::toQuizResponse)
-                .toList();
-    }
-
-    @Override
-    public List<QuestionResponse> getQuestionsForStudent(Long courseId, Long chapterId, Long lessonId, Long quizId, User student) {
-        getEnrolledLesson(courseId, chapterId, lessonId, student);
-        getQuizInLesson(lessonId, quizId);
-
-        return questionRepository.findByQuizIdAndDeletedFalseOrderByOrderIndexAsc(quizId)
-                .stream()
-                .map(this::toQuestionResponseForStudent)
-                .toList();
-    }
-
-    @Override
-    public QuizAttemptResponse submitForStudent(
-            Long courseId,
-            Long chapterId,
-            Long lessonId,
-            Long quizId,
-            SubmitQuizRequest request,
-            User student
-    ) {
-        getEnrolledLesson(courseId, chapterId, lessonId, student);
-        Quiz quiz = getQuizInLesson(lessonId, quizId);
-
-        List<Question> questions = questionRepository.findByQuizIdAndDeletedFalseOrderByOrderIndexAsc(quizId);
-        Map<Long, Question> questionById = questions.stream()
-                .collect(Collectors.toMap(Question::getId, Function.identity()));
-
-        Float totalScore = 0F;
-        for (SubmitQuizAnswerRequest answer : request.getAnswers()) {
-            Question question = questionById.get(answer.getQuestionId());
-            if (question == null) {
-                throw new IllegalArgumentException("Question does not belong to this quiz: " + answer.getQuestionId());
-            }
-
-            QuestionOption selectedOption = questionOptionRepository.findById(answer.getOptionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Option not found: " + answer.getOptionId()));
-
-            if (selectedOption.isDeleted()
-                    || selectedOption.getQuestion() == null
-                    || !selectedOption.getQuestion().getId().equals(question.getId())) {
-                throw new IllegalArgumentException("Option does not belong to question: " + answer.getQuestionId());
-            }
-
-            if (Boolean.TRUE.equals(selectedOption.getIsCorrect())) {
-                totalScore += question.getScore();
-            }
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        QuizAttempt attempt = new QuizAttempt();
-        attempt.setQuiz(quiz);
-        attempt.setStudent(student);
-        attempt.setTotalScore(totalScore);
-        attempt.setStartedAt(now);
-        attempt.setCompletedAt(now);
-        attempt.setDeleted(false);
-
-        return toQuizAttemptResponse(quizAttemptRepository.save(attempt));
-    }
-
-    @Override
-    public List<QuizAttemptResponse> getAttemptsForStudent(User student) {
-        return quizAttemptRepository.findByStudentIdAndDeletedFalseOrderByStartedAtDesc(student.getId())
-                .stream()
-                .map(this::toQuizAttemptResponse)
-                .toList();
-    }
-
-    @Override
-    public List<QuizAttemptResponse> getAttemptsForQuizForStudent(
-            Long courseId,
-            Long chapterId,
-            Long lessonId,
-            Long quizId,
-            User student
-    ) {
-        getEnrolledLesson(courseId, chapterId, lessonId, student);
-        getQuizInLesson(lessonId, quizId);
-
-        return quizAttemptRepository.findByQuizIdAndStudentIdAndDeletedFalseOrderByStartedAtDesc(quizId, student.getId())
-                .stream()
-                .map(this::toQuizAttemptResponse)
                 .toList();
     }
 
@@ -581,27 +476,6 @@ public class QuizServiceImpl implements QuizService {
         return lesson;
     }
 
-    private Lesson getEnrolledLesson(Long courseId, Long chapterId, Long lessonId, User student) {
-        Lesson lesson = lessonRepository.findByIdAndDeletedFalse(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson not found: " + lessonId));
-
-        if (lesson.getChapter() == null || !lesson.getChapter().getId().equals(chapterId)) {
-            throw new EntityNotFoundException("Lesson not found in chapter: " + chapterId);
-        }
-
-        Chapter chapter = chapterRepository.findByIdAndDeletedFalse(chapterId)
-                .orElseThrow(() -> new EntityNotFoundException("Chapter not found: " + chapterId));
-
-        if (chapter.getCourse() == null || !chapter.getCourse().getId().equals(courseId)) {
-            throw new EntityNotFoundException("Chapter not found in course: " + courseId);
-        }
-
-        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(courseId, student.getId())
-                .orElseThrow(() -> new SecurityException("You are not enrolled in this course"));
-
-        return lesson;
-    }
-
     private QuizResponse toQuizResponse(Quiz quiz) {
         QuizResponse response = new QuizResponse();
         response.setId(quiz.getId());
@@ -626,37 +500,11 @@ public class QuizServiceImpl implements QuizService {
         return response;
     }
 
-    private QuestionResponse toQuestionResponseForStudent(Question question) {
-        QuestionResponse response = toQuestionResponse(question);
-        response.getOptions().forEach(option -> option.setIsCorrect(null));
-        return response;
-    }
-
     private QuestionOptionResponse toOptionResponse(QuestionOption option) {
         QuestionOptionResponse response = new QuestionOptionResponse();
         response.setId(option.getId());
         response.setContent(option.getContent());
         response.setIsCorrect(option.getIsCorrect());
-        return response;
-    }
-
-    private QuizAttemptResponse toQuizAttemptResponse(QuizAttempt attempt) {
-        QuizAttemptResponse response = new QuizAttemptResponse();
-        response.setId(attempt.getId());
-        response.setQuizId(attempt.getQuiz() != null ? attempt.getQuiz().getId() : null);
-        if (attempt.getQuiz() != null && attempt.getQuiz().getLesson() != null) {
-            Lesson lesson = attempt.getQuiz().getLesson();
-            response.setLessonId(lesson.getId());
-            if (lesson.getChapter() != null && lesson.getChapter().getCourse() != null) {
-                response.setCourseId(lesson.getChapter().getCourse().getId());
-            }
-        }
-        response.setStudentId(attempt.getStudent() != null ? attempt.getStudent().getId() : null);
-        response.setTotalScore(attempt.getTotalScore());
-        response.setPassScore(attempt.getQuiz() != null ? attempt.getQuiz().getPassScore() : null);
-        response.setPassed(attempt.getQuiz() != null && attempt.getTotalScore() >= attempt.getQuiz().getPassScore());
-        response.setStartedAt(attempt.getStartedAt());
-        response.setCompletedAt(attempt.getCompletedAt());
         return response;
     }
 }
