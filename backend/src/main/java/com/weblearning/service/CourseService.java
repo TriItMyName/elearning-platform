@@ -1,6 +1,7 @@
 package com.weblearning.service;
 
 import com.weblearning.dto.course.CourseResponse;
+import com.weblearning.dto.course.CourseContentResponse;
 import com.weblearning.entity.Course;
 import com.weblearning.entity.User;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,8 @@ public interface CourseService {
     Page<CourseResponse> getAll(Pageable pageable);
 
     Page<CourseResponse> getAllForStudent(User student, Pageable pageable);
+
+    CourseContentResponse getCourseContentForStudent(Long id, User student);
 
     CourseResponse update(Long id, Course course);
 

@@ -1,5 +1,6 @@
 package com.weblearning.controller;
 
+import com.weblearning.dto.course.CourseContentResponse;
 import com.weblearning.dto.course.CourseResponse;
 import com.weblearning.dto.course.EnrollmentResponse;
 import com.weblearning.dto.course.CreateCourseRequest;
@@ -98,6 +99,50 @@ public class CourseController {
             return ResponseEntity.notFound().build();
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/{id}/content/student")
+    public ResponseEntity<CourseContentResponse> getCourseContentForStudent(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(courseService.getCourseContentForStudent(id, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+    }
+
+    @GetMapping("/{id}/progress/student")
+    public ResponseEntity<StudentLearningProgressResponse> getMyLearningProgress(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(learningProgressService.getStudentProgressForStudent(id, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/lessons/{lessonId}/progress/student/complete")
+    public ResponseEntity<StudentLearningProgressResponse> completeLesson(
+            @PathVariable Long id,
+            @PathVariable Long lessonId,
+            Authentication authentication
+    ) {
+        try {
+            User student = getCurrentUser(authentication);
+            return ResponseEntity.ok(learningProgressService.completeLessonForStudent(id, lessonId, student));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
     }
 

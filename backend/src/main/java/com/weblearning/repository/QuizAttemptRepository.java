@@ -9,4 +9,8 @@ import java.util.List;
 @Repository
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
     List<QuizAttempt> findByQuizIdAndDeletedFalseOrderByStartedAtDesc(Long quizId);
+
+    List<QuizAttempt> findByStudentIdAndDeletedFalseOrderByStartedAtDesc(Long studentId);
+
+    List<QuizAttempt> findByQuizIdAndStudentIdAndDeletedFalseOrderByStartedAtDesc(Long quizId, Long studentId);
 }
