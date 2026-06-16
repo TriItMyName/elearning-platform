@@ -1,6 +1,7 @@
 package com.weblearning.service.admin;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.weblearning.dto.admin.AdminCourseDtoResponse;
 import com.weblearning.dto.admin.AdminCourseRequest;
@@ -8,7 +9,7 @@ import com.weblearning.dto.admin.AdminCourseUpdateRequest;
 
 public interface AdminCourseService {
 
-    public List<AdminCourseDtoResponse> getAllCourses();
+    public Page<AdminCourseDtoResponse> getAllCourses(Pageable pageable);
 
     public AdminCourseDtoResponse getCourseById(Long id);
 
@@ -18,7 +19,7 @@ public interface AdminCourseService {
 
     public void deleteCourse(Long id);
 
-    public List<AdminCourseDtoResponse> getDeletedCourses();
+    public Page<AdminCourseDtoResponse> getDeletedCourses(Pageable pageable);
 
     public AdminCourseDtoResponse restoreCourse(Long id);
 }

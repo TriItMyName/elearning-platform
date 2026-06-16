@@ -2,6 +2,8 @@ package com.weblearning.service.impl.admin;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.weblearning.dto.category.CategoryResponse;
@@ -54,8 +56,8 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     }
 
     @Override
-    public List<CategoryResponse> getAllCategories() {
-        return adminCategoryRepository.findAll().stream().map(this::mapToCategoryResponse).toList();
+    public Page<CategoryResponse> getAllCategories(Pageable pageable) {
+        return adminCategoryRepository.findAll(pageable).map(this::mapToCategoryResponse);
     }
 
     @Override

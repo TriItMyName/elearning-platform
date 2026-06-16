@@ -22,10 +22,16 @@ public interface AdminCourseRepository extends JpaRepository<Course, Long>, JpaS
 
     List<Course> findByDeletedTrue();
 
+    org.springframework.data.domain.Page<Course> findByDeletedTrue(org.springframework.data.domain.Pageable pageable);
+
     Optional<Course> findByIdAndDeletedTrue(Long id);
 
     boolean existsByTitle(String title);
 
     boolean existsBySlug(String slug);
+
+    boolean existsByTitleAndDeletedFalse(String title);
+
+    boolean existsBySlugAndDeletedFalse(String slug);
 
 }

@@ -1,10 +1,17 @@
 package com.weblearning.service.impl.admin;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import jakarta.transaction.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.weblearning.dto.admin.AdminCourseDtoResponse;
@@ -48,8 +55,7 @@ public class AdminCourseServiceImpl implements AdminCourseService {
                 course.getDescription(),
                 course.getAdminStatus(),
                 course.getCreatedAt(),
-                course.getUpdatedAt()
-        );
+                course.getUpdatedAt());
     }
 
     // Helper to clear cache after mutations
@@ -72,10 +78,12 @@ public class AdminCourseServiceImpl implements AdminCourseService {
         }
 
         Category category = adminCategoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
 
         User instructor = userRepository.findById(request.getInstructorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Instructor not found with id: " + request.getInstructorId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Instructor not found with id: " + request.getInstructorId()));
 
         Course course = Course.builder()
                 .category(category)
@@ -106,8 +114,7 @@ public class AdminCourseServiceImpl implements AdminCourseService {
         clearCache();
     }
 
-    @Override
-    public List<AdminCourseDtoResponse> getAllCourses() {
+    private List<AdminCourseDtoResponse> getAllCoursesRaw() {
         long now = System.currentTimeMillis();
         synchronized (cacheLock) {
             if (cachedCourses == null || now > cacheExpiryTime) {
@@ -118,6 +125,43 @@ public class AdminCourseServiceImpl implements AdminCourseService {
             }
             return cachedCourses;
         }
+    }
+
+    @Override
+    public Page<AdminCourseDtoResponse> getAllCourses(Pageable pageable) {
+        List<AdminCourseDtoResponse> list = new ArrayList<>(getAllCoursesRaw());
+
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            String property = order.getProperty();
+            boolean isAsc = order.isAscending();
+
+            Comparator<AdminCourseDtoResponse> comparator = switch (property) {
+                case "title" -> Comparator.comparing(AdminCourseDtoResponse::getTitle,
+                        Comparator.nullsLast(String::compareToIgnoreCase));
+                case "createdAt" -> Comparator.comparing(AdminCourseDtoResponse::getCreatedAt,
+                        Comparator.nullsLast(LocalDateTime::compareTo));
+                case "updatedAt" -> Comparator.comparing(AdminCourseDtoResponse::getUpdatedAt,
+                        Comparator.nullsLast(LocalDateTime::compareTo));
+                default -> Comparator.comparing(AdminCourseDtoResponse::getId);
+            };
+
+            if (!isAsc) {
+                comparator = comparator.reversed();
+            }
+            list.sort(comparator);
+        } else {
+            list.sort(Comparator.comparing(AdminCourseDtoResponse::getId));
+        }
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), list.size());
+
+        if (start > list.size()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, list.size());
+        }
+
+        return new PageImpl<>(list.subList(start, end), pageable, list.size());
     }
 
     @Override
@@ -150,13 +194,15 @@ public class AdminCourseServiceImpl implements AdminCourseService {
 
         if (request.getCategoryId() != null) {
             Category category = adminCategoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Category not found with id: " + request.getCategoryId()));
             course.setCategory(category);
         }
 
         if (request.getInstructorId() != null) {
             User instructor = userRepository.findById(request.getInstructorId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Instructor not found with id: " + request.getInstructorId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Instructor not found with id: " + request.getInstructorId()));
             course.setInstructor(instructor);
         }
 
@@ -175,10 +221,9 @@ public class AdminCourseServiceImpl implements AdminCourseService {
     }
 
     @Override
-    public List<AdminCourseDtoResponse> getDeletedCourses() {
-        return adminCourseRepository.findByDeletedTrue().stream()
-                .map(this::mapToCourseDtoResponse)
-                .toList();
+    public Page<AdminCourseDtoResponse> getDeletedCourses(Pageable pageable) {
+        return adminCourseRepository.findByDeletedTrue(pageable)
+                .map(this::mapToCourseDtoResponse);
     }
 
     @Override
@@ -187,10 +232,10 @@ public class AdminCourseServiceImpl implements AdminCourseService {
         Course course = adminCourseRepository.findByIdAndDeletedTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Deleted course not found with id: " + id));
 
-        if (adminCourseRepository.existsByTitle(course.getTitle())) {
+        if (adminCourseRepository.existsByTitleAndDeletedFalse(course.getTitle())) {
             throw new AlreadyUserException("Cannot restore: Course title already exists in active courses");
         }
-        if (adminCourseRepository.existsBySlug(course.getSlug())) {
+        if (adminCourseRepository.existsBySlugAndDeletedFalse(course.getSlug())) {
             throw new AlreadyUserException("Cannot restore: Course slug already exists in active courses");
         }
 

@@ -1,6 +1,5 @@
 package com.weblearning.service.impl.admin;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,7 +46,8 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .status(user.getStatus())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
-                .roles(user.getRoles() != null ? user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()) : Set.of())
+                .roles(user.getRoles() != null ? user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())
+                        : Set.of())
                 .build();
     }
 
@@ -121,7 +121,8 @@ public class AdminUserServiceImpl implements AdminUserService {
             }
 
             if (role != null && !role.trim().isEmpty()) {
-                predicate = cb.and(predicate, cb.equal(cb.upper(root.join("roles").get("name")), role.trim().toUpperCase()));
+                predicate = cb.and(predicate,
+                        cb.equal(cb.upper(root.join("roles").get("name")), role.trim().toUpperCase()));
             }
 
             return predicate;
@@ -129,7 +130,6 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         return userRepository.findAll(spec, pageable).map(this::mapToUserResponse);
     }
-
 
     // tìm kiếm bằng id
     @Override

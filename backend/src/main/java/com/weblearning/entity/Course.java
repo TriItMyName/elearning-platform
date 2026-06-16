@@ -42,7 +42,8 @@ public class Course {
     @Column(nullable = false)
     private int status;
 
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_status", nullable = false)
     private CourseStatus adminStatus;
 
     @Column(nullable = false)
