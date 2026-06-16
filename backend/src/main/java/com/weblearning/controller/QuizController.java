@@ -167,7 +167,7 @@ public class QuizController {
             @PathVariable Long chapterId,
             @PathVariable Long lessonId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam Integer timeLimit,
+            @RequestParam(required = false) Integer timeLimit,
             @RequestParam Float passScore,
             Authentication authentication
     ) {
