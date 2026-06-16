@@ -16,6 +16,8 @@ import com.weblearning.repository.admin.PermissionRepository;
 import com.weblearning.repository.admin.RoleRepository;
 import com.weblearning.repository.admin.UserRepository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -26,9 +28,22 @@ public class DataInitializer implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
+        // Fix legacy course admin_status values
+        try {
+            entityManager.createNativeQuery(
+                    "UPDATE courses SET admin_status = 'DRAFT' WHERE admin_status = '0'").executeUpdate();
+            entityManager.createNativeQuery(
+                    "UPDATE courses SET admin_status = 'PUBLISHED' WHERE admin_status = '1'").executeUpdate();
+            entityManager.createNativeQuery(
+                    "UPDATE courses SET admin_status = 'ARCHIVED' WHERE admin_status = '2'").executeUpdate();
+        } catch (Exception e) {
+            System.err.println("Failed to migrate legacy course status: " + e.getMessage());
+        }
         // Initialize Permissions
         Permission readCourse = getOrCreatePermission("COURSE_READ", "Xem khóa học");
         Permission writeCourse = getOrCreatePermission("COURSE_WRITE", "Tạo và cập nhật khóa học");
@@ -71,14 +86,12 @@ public class DataInitializer implements CommandLineRunner {
     private Permission getOrCreatePermission(String name, String description) {
         return permissionRepository.findByName(name)
                 .orElseGet(() -> permissionRepository.save(
-                        Permission.builder().name(name).description(description).build()
-                ));
+                        Permission.builder().name(name).description(description).build()));
     }
 
     private Role getOrCreateRole(String name) {
         return roleRepository.findByName(name)
                 .orElseGet(() -> roleRepository.save(
-                        Role.builder().name(name).build()
-                ));
+                        Role.builder().name(name).build()));
     }
 }

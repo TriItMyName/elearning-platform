@@ -2,6 +2,10 @@ package com.weblearning.controller.admin;
 
 import java.util.List;
 
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,8 +44,9 @@ public class AdminCategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
-        return ResponseEntity.ok(adminCategoryService.getAllCategories());
+    public ResponseEntity<Page<CategoryResponse>> getAllCategories(
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(adminCategoryService.getAllCategories(pageable));
     }
 
     @PutMapping("/{id}")
