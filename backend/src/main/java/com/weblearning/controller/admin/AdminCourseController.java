@@ -71,4 +71,26 @@ public class AdminCourseController {
     public ResponseEntity<AdminCourseDtoResponse> restoreCourse(@PathVariable Long id) {
         return ResponseEntity.ok(adminCourseService.restoreCourse(id));
     }
+
+    @GetMapping("/pending")
+    public ResponseEntity<Page<AdminCourseDtoResponse>> getPendingCourses(
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(adminCourseService.getPendingCourses(pageable));
+    }
+
+    @GetMapping("/rejected")
+    public ResponseEntity<Page<AdminCourseDtoResponse>> getRejectedCourses(
+            @ParameterObject @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(adminCourseService.getRejectedCourses(pageable));
+    }
+
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<AdminCourseDtoResponse> approveCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(adminCourseService.approveCourse(id));
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<AdminCourseDtoResponse> rejectCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(adminCourseService.rejectCourse(id));
+    }
 }

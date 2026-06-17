@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import jakarta.transaction.Transactional;
 
@@ -245,6 +246,89 @@ public class AdminCourseServiceImpl implements AdminCourseService {
         Course restoredCourse = adminCourseRepository.save(course);
         clearCache();
         return mapToCourseDtoResponse(restoredCourse);
+    }
+
+    @Override
+    public Page<AdminCourseDtoResponse> getPendingCourses(Pageable pageable) {
+        List<AdminCourseDtoResponse> list = getAllCoursesRaw().stream()
+                .filter(course -> CourseStatus.PENDING.equals(course.getAdminStatus()))
+                .collect(Collectors.toList());
+
+        return paginateList(list, pageable);
+    }
+
+    @Override
+    public Page<AdminCourseDtoResponse> getRejectedCourses(Pageable pageable) {
+        List<AdminCourseDtoResponse> list = getAllCoursesRaw().stream()
+                .filter(course -> CourseStatus.REJECTED.equals(course.getAdminStatus()))
+                .collect(Collectors.toList());
+
+        return paginateList(list, pageable);
+    }
+
+    private Page<AdminCourseDtoResponse> paginateList(List<AdminCourseDtoResponse> list, Pageable pageable) {
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            String property = order.getProperty();
+            boolean isAsc = order.isAscending();
+
+            Comparator<AdminCourseDtoResponse> comparator = switch (property) {
+                case "title" -> Comparator.comparing(AdminCourseDtoResponse::getTitle, Comparator.nullsLast(String::compareToIgnoreCase));
+                case "createdAt" -> Comparator.comparing(AdminCourseDtoResponse::getCreatedAt, Comparator.nullsLast(LocalDateTime::compareTo));
+                case "updatedAt" -> Comparator.comparing(AdminCourseDtoResponse::getUpdatedAt, Comparator.nullsLast(LocalDateTime::compareTo));
+                default -> Comparator.comparing(AdminCourseDtoResponse::getId);
+            };
+
+            if (!isAsc) {
+                comparator = comparator.reversed();
+            }
+            list.sort(comparator);
+        } else {
+            list.sort(Comparator.comparing(AdminCourseDtoResponse::getId));
+        }
+
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), list.size());
+
+        if (start > list.size()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, list.size());
+        }
+
+        return new PageImpl<>(list.subList(start, end), pageable, list.size());
+    }
+
+    @Override
+    @Transactional
+    public AdminCourseDtoResponse approveCourse(Long id) {
+        Course course = adminCourseRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
+
+        if (course.getAdminStatus() != CourseStatus.PENDING && course.getAdminStatus() != CourseStatus.REJECTED) {
+            throw new IllegalStateException("Cannot approve: Course is not in PENDING or REJECTED status. Current status: " + course.getAdminStatus());
+        }
+
+        course.setAdminStatus(CourseStatus.APPROVED);
+        course.setUpdatedAt(LocalDateTime.now());
+        Course approvedCourse = adminCourseRepository.save(course);
+        clearCache();
+        return mapToCourseDtoResponse(approvedCourse);
+    }
+
+    @Override
+    @Transactional
+    public AdminCourseDtoResponse rejectCourse(Long id) {
+        Course course = adminCourseRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
+
+        if (course.getAdminStatus() != CourseStatus.PENDING) {
+            throw new IllegalStateException("Cannot reject: Course is not in PENDING status. Current status: " + course.getAdminStatus());
+        }
+
+        course.setAdminStatus(CourseStatus.REJECTED);
+        course.setUpdatedAt(LocalDateTime.now());
+        Course rejectedCourse = adminCourseRepository.save(course);
+        clearCache();
+        return mapToCourseDtoResponse(rejectedCourse);
     }
 
 }
