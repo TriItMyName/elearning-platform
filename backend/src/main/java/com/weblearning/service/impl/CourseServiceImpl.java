@@ -11,6 +11,7 @@ import com.weblearning.entity.Enrollment;
 import com.weblearning.entity.Lesson;
 import com.weblearning.entity.Quiz;
 import com.weblearning.entity.User;
+import com.weblearning.entity.enums.CourseStatus;
 import com.weblearning.repository.ChapterRepository;
 import com.weblearning.repository.CourseRepository;
 import com.weblearning.repository.EnrollmentRepository;
@@ -47,8 +48,11 @@ public class CourseServiceImpl implements CourseService {
         response.setCategoryId(course.getCategory() != null ? course.getCategory().getId() : null);
         response.setTitle(course.getTitle());
         response.setSlug(course.getSlug());
+        response.setThumbnail(course.getThumbnail());
         response.setStatus(course.getStatus());
+        response.setAdminStatus(course.getAdminStatus());
         response.setCreatedAt(course.getCreatedAt());
+        response.setUpDateTime(course.getUpdatedAt());
         response.setDescription(course.getDescription());
         return response;
     }
@@ -61,20 +65,20 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public Optional<CourseResponse> getById(Long id) {
-        return courseRepository.findByIdAndDeletedFalse(id)
+        return courseRepository.findByIdAndAdminStatusAndDeletedFalse(id, CourseStatus.PUBLISHED)
                 .map(this::toCourseResponse);
     }
 
     @Override
     public List<CourseResponse> getAll() {
-        return courseRepository.findByDeletedFalse().stream()
+        return courseRepository.findByAdminStatusAndDeletedFalse(CourseStatus.PUBLISHED).stream()
                 .map(this::toCourseResponse)
                 .toList();
     }
 
     @Override
     public Page<CourseResponse> getAll(Pageable pageable) {
-        return courseRepository.findByDeletedFalse(pageable)
+        return courseRepository.findByAdminStatusAndDeletedFalse(CourseStatus.PUBLISHED, pageable)
                 .map(this::toCourseResponse);
     }
 
@@ -87,28 +91,12 @@ public class CourseServiceImpl implements CourseService {
                 .map(Course::getId)
                 .collect(Collectors.toSet());
 
-        return courseRepository.findByDeletedFalse(pageable)
+        return courseRepository.findByAdminStatusAndDeletedFalse(CourseStatus.PUBLISHED, pageable)
                 .map(course -> {
                     CourseResponse response = toCourseResponse(course);
                     response.setEnrolled(enrolledCourseIds.contains(course.getId()));
                     return response;
                 });
-    }
-
-    @Override
-    public CourseContentResponse getCourseContentForStudent(Long id, User student) {
-        Course course = courseRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
-
-        enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(id, student.getId())
-                .orElseThrow(() -> new SecurityException("You are not enrolled in this course"));
-
-        CourseContentResponse response = new CourseContentResponse();
-        response.setCourse(toCourseResponse(course));
-        response.setChapters(chapterRepository.findByCourseIdAndDeletedFalseOrderByOrderIndexAsc(id).stream()
-                .map(this::toChapterContentResponse)
-                .toList());
-        return response;
     }
 
     @Override
@@ -118,10 +106,12 @@ public class CourseServiceImpl implements CourseService {
         existing.setTitle(course.getTitle());
         existing.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         existing.setDescription(course.getDescription());
+        existing.setThumbnail(course.getThumbnail());
         existing.setCategory(course.getCategory());
         existing.setInstructor(course.getInstructor());
         existing.setStatus(course.getStatus());
         existing.setCreatedAt(course.getCreatedAt());
+        existing.setUpdatedAt(LocalDateTime.now());
         return toCourseResponse(courseRepository.save(existing));
     }
 
@@ -152,7 +142,9 @@ public class CourseServiceImpl implements CourseService {
         return enrollmentRepository.findByStudentIdAndDeletedFalseOrderByEnrolledAtDesc(student.getId())
                 .stream()
                 .map(Enrollment::getCourse)
-                .filter(course -> course != null && !course.isDeleted())
+                .filter(course -> course != null
+                        && !course.isDeleted()
+                        && CourseStatus.PUBLISHED.equals(course.getAdminStatus()))
                 .map(this::toCourseResponse)
                 .toList();
     }
@@ -165,7 +157,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseContentResponse getCourseContentForStudent(Long id, User student) {
-        Course course = courseRepository.findByIdAndDeletedFalse(id)
+        Course course = courseRepository.findByIdAndAdminStatusAndDeletedFalse(id, CourseStatus.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
         enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(id, student.getId())
                 .orElseThrow(() -> new SecurityException("You are not enrolled in this course"));
@@ -176,6 +168,10 @@ public class CourseServiceImpl implements CourseService {
     public CourseResponse createForInstructor(Course course, User instructor) {
         course.setInstructor(instructor);
         course.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
+        course.setStatus(0);
+        course.setAdminStatus(CourseStatus.DRAFT);
+        course.setCreatedAt(course.getCreatedAt() != null ? course.getCreatedAt() : LocalDateTime.now());
+        course.setDeleted(false);
         return toCourseResponse(courseRepository.save(course));
     }
 
@@ -189,9 +185,11 @@ public class CourseServiceImpl implements CourseService {
         existing.setTitle(course.getTitle());
         existing.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         existing.setDescription(course.getDescription());
+        existing.setThumbnail(course.getThumbnail());
         existing.setCategory(course.getCategory());
-        existing.setStatus(course.getStatus());
-        existing.setCreatedAt(course.getCreatedAt());
+        existing.setStatus(0);
+        existing.setAdminStatus(CourseStatus.DRAFT);
+        existing.setUpdatedAt(LocalDateTime.now());
         return toCourseResponse(courseRepository.save(existing));
     }
 
@@ -246,5 +244,30 @@ public class CourseServiceImpl implements CourseService {
         response.setPassScore(quiz.getPassScore());
         response.setCreatedAt(quiz.getCreatedAt());
         return response;
+    }
+
+    private CourseContentResponse toCourseContentResponse(Course course) {
+        CourseContentResponse response = new CourseContentResponse();
+        response.setCourse(toCourseResponse(course));
+        response.setChapters(chapterRepository.findByCourseIdAndDeletedFalseOrderByOrderIndexAsc(course.getId()).stream()
+                .map(this::toChapterContentResponse)
+                .toList());
+        return response;
+    }
+
+    private Course getOwnedCourse(Long id, User instructor) {
+        Course course = courseRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
+        if (course.getInstructor() == null || !course.getInstructor().getId().equals(instructor.getId())) {
+            throw new SecurityException("You are not the instructor of this course");
+        }
+        return course;
+    }
+
+    private String resolveSlug(String slug, String title) {
+        if (slug != null && !slug.trim().isEmpty()) {
+            return StringUnitls.toSlug(slug);
+        }
+        return StringUnitls.toSlug(title);
     }
 }

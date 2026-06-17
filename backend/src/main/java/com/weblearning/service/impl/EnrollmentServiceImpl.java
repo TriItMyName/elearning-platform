@@ -4,6 +4,7 @@ import com.weblearning.dto.enrollment.EnrollmentResponse;
 import com.weblearning.entity.Course;
 import com.weblearning.entity.Enrollment;
 import com.weblearning.entity.User;
+import com.weblearning.entity.enums.CourseStatus;
 import com.weblearning.repository.CourseRepository;
 import com.weblearning.repository.EnrollmentRepository;
 import com.weblearning.service.EnrollmentService;
@@ -33,7 +34,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Override
     public EnrollmentResponse enrollCourseForStudent(Long courseId, User student) {
-        Course course = courseRepository.findByIdAndDeletedFalse(courseId)
+        Course course = courseRepository.findByIdAndAdminStatusAndDeletedFalse(courseId, CourseStatus.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));
 
         enrollmentRepository.findByCourseIdAndStudentIdAndDeletedFalse(courseId, student.getId())
