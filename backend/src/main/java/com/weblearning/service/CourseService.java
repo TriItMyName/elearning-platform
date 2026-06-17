@@ -21,8 +21,6 @@ public interface CourseService {
 
     Page<CourseResponse> getAllForStudent(User student, Pageable pageable);
 
-    CourseContentResponse getCourseContentForStudent(Long id, User student);
-
     CourseResponse update(Long id, Course course);
 
     void delete(Long id);

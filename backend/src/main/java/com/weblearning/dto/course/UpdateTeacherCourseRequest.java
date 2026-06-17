@@ -27,8 +27,23 @@ public class UpdateTeacherCourseRequest {
     @Size(max = 2000)
     private String description;
 
-    @NotNull
-    private Integer status;
+    @Size(max = 500)
+    private String thumbnail;
 
     private LocalDateTime createdAt;
+
+    public UpdateTeacherCourseRequest(
+            Long categoryId,
+            String title,
+            String slug,
+            String description,
+            Integer ignoredStatus,
+            LocalDateTime createdAt
+    ) {
+        this.categoryId = categoryId;
+        this.title = title;
+        this.slug = slug;
+        this.description = description;
+        this.createdAt = createdAt;
+    }
 }

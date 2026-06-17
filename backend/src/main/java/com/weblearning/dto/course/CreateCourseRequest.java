@@ -30,9 +30,30 @@ public class CreateCourseRequest {
     @Size(max = 2000)
     private String description;
 
+    @Size(max = 500)
+    private String thumbnail;
+
     @NotNull
     private Integer status;
 
     private LocalDateTime createdAt;
+
+    public CreateCourseRequest(
+            Long categoryId,
+            Long instructorId,
+            String title,
+            String slug,
+            String description,
+            Integer status,
+            LocalDateTime createdAt
+    ) {
+        this.categoryId = categoryId;
+        this.instructorId = instructorId;
+        this.title = title;
+        this.slug = slug;
+        this.description = description;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
 }
 
