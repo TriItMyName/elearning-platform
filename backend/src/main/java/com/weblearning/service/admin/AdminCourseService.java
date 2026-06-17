@@ -22,4 +22,12 @@ public interface AdminCourseService {
     public Page<AdminCourseDtoResponse> getDeletedCourses(Pageable pageable);
 
     public AdminCourseDtoResponse restoreCourse(Long id);
+
+    public Page<AdminCourseDtoResponse> getPendingCourses(Pageable pageable);
+
+    public Page<AdminCourseDtoResponse> getRejectedCourses(Pageable pageable);
+
+    public AdminCourseDtoResponse approveCourse(Long id);
+
+    public AdminCourseDtoResponse rejectCourse(Long id);
 }
