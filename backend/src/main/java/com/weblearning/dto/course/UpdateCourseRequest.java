@@ -16,6 +16,25 @@ public class UpdateCourseRequest {
     private String title;
     private String slug;
     private String description;
+    private String thumbnail;
     private Integer status;
     private LocalDateTime createdAt;
+
+    public UpdateCourseRequest(
+            Long categoryId,
+            Long instructorId,
+            String title,
+            String slug,
+            String description,
+            Integer status,
+            LocalDateTime createdAt
+    ) {
+        this.categoryId = categoryId;
+        this.instructorId = instructorId;
+        this.title = title;
+        this.slug = slug;
+        this.description = description;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
 }

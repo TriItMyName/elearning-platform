@@ -277,6 +277,7 @@ public class CourseController {
         course.setTitle(request.getTitle());
         course.setSlug(request.getSlug());
         course.setDescription(request.getDescription());
+        course.setThumbnail(request.getThumbnail());
         course.setStatus(request.getStatus());
         course.setCreatedAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now());
         course.setCategory(toCategory(request.getCategoryId()));
@@ -289,6 +290,7 @@ public class CourseController {
         course.setTitle(request.getTitle());
         course.setSlug(request.getSlug());
         course.setDescription(request.getDescription());
+        course.setThumbnail(request.getThumbnail());
         course.setStatus(request.getStatus());
         course.setCreatedAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now());
         course.setCategory(toCategory(request.getCategoryId()));
@@ -301,7 +303,7 @@ public class CourseController {
         course.setTitle(request.getTitle());
         course.setSlug(request.getSlug());
         course.setDescription(request.getDescription());
-        course.setStatus(request.getStatus());
+        course.setThumbnail(request.getThumbnail());
         course.setCreatedAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now());
         course.setCategory(toCategory(request.getCategoryId()));
         return course;
@@ -312,7 +314,7 @@ public class CourseController {
         course.setTitle(request.getTitle());
         course.setSlug(request.getSlug());
         course.setDescription(request.getDescription());
-        course.setStatus(request.getStatus());
+        course.setThumbnail(request.getThumbnail());
         course.setCreatedAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now());
         course.setCategory(toCategory(request.getCategoryId()));
         return course;

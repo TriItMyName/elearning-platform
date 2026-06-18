@@ -35,6 +35,9 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(length = 500)
+    private String thumbnail;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id", nullable = false)
     private User instructor;
@@ -42,9 +45,10 @@ public class Course {
     @Column(nullable = false)
     private int status;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "admin_status", nullable = false)
-    private CourseStatus adminStatus;
+    private CourseStatus adminStatus = CourseStatus.PENDING;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -57,4 +61,14 @@ public class Course {
 
     @Column
     private LocalDateTime deletedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (adminStatus == null) {
+            adminStatus = CourseStatus.PENDING;
+        }
+    }
 }

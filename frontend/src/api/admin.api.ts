@@ -16,6 +16,11 @@ import type {
   UpdateUserStatusPayload,
   UsersQueryParams,
 } from '@/types/admin'
+import type {
+  AdminCourse,
+  CreateAdminCoursePayload,
+  UpdateAdminCoursePayload,
+} from '@/types/admin-course'
 
 export const adminApi = {
   users: {
@@ -81,6 +86,30 @@ export const adminApi = {
     },
     delete(id: number) {
       return apiClient.delete(`/admin/categories/${id}`)
+    },
+  },
+
+  courses: {
+    list() {
+      return apiClient.get<AdminCourse[]>('/admin/courses').then((r) => r.data)
+    },
+    listDeleted() {
+      return apiClient.get<AdminCourse[]>('/admin/courses/deleted').then((r) => r.data)
+    },
+    getById(id: number) {
+      return apiClient.get<AdminCourse>(`/admin/courses/${id}`).then((r) => r.data)
+    },
+    create(payload: CreateAdminCoursePayload) {
+      return apiClient.post<AdminCourse>('/admin/courses', payload).then((r) => r.data)
+    },
+    update(id: number, payload: UpdateAdminCoursePayload) {
+      return apiClient.put<AdminCourse>(`/admin/courses/${id}`, payload).then((r) => r.data)
+    },
+    delete(id: number) {
+      return apiClient.delete(`/admin/courses/${id}`)
+    },
+    restore(id: number) {
+      return apiClient.put<AdminCourse>(`/admin/courses/${id}/restore`).then((r) => r.data)
     },
   },
 }
