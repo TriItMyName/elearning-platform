@@ -49,19 +49,32 @@ export const lessonsApi = {
     const form = new FormData()
     form.append('file', file)
     return apiClient
-      .post<Lesson>(`${basePath(courseId, chapterId)}/${lessonId}/upload-video`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      .post<Lesson>(`${basePath(courseId, chapterId)}/${lessonId}/upload-video`, form)
       .then((r) => r.data)
   },
 
-  uploadDocument(courseId: number, chapterId: number, lessonId: number, file: File) {
-    const form = new FormData()
-    form.append('file', file)
+  listForStudent(courseId: number, chapterId: number, params: LessonsQueryParams = {}) {
     return apiClient
-      .post<Lesson>(`${basePath(courseId, chapterId)}/${lessonId}/upload-document`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      .then((r) => r.data)
+      .get<PageResponse<Lesson>>(
+        `/courses/${courseId}/chapters/${chapterId}/lessons/student`,
+        { params },
+      )
+      .then((response) => response.data)
   },
+
+  getForStudent(courseId: number, chapterId: number, lessonId: number) {
+    return apiClient
+      .get<Lesson>(`/courses/${courseId}/chapters/${chapterId}/lessons/student/${lessonId}`)
+      .then((response) => response.data)
+  },
+
+  getVideoStream(courseId: number, chapterId: number, lessonId: number) {
+    return apiClient
+      .get<Blob>(
+        `/courses/${courseId}/chapters/${chapterId}/lessons/student/${lessonId}/video-stream`,
+        { responseType: 'blob' },
+      )
+      .then((response) => response.data)
+  },
+
 }

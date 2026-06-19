@@ -1,40 +1,118 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type SyntheticEvent } from 'react'
 
 import { parseVideoEmbed } from '@/lib/video-embed'
 
 interface VideoLessonPlayerProps {
   url: string
   title?: string
-  onEnded?: () => void
+  onProgressComplete?: () => void
 }
 
-export function VideoLessonPlayer({ url, title, onEnded }: VideoLessonPlayerProps) {
+const COMPLETION_RATIO = 0.9
+
+export function VideoLessonPlayer({ url, title, onProgressComplete }: VideoLessonPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const completionReportedRef = useRef(false)
+  const youtubeProgressRef = useRef({ currentTime: 0, duration: 0 })
   const embed = parseVideoEmbed(url)
 
   useEffect(() => {
-    if (!onEnded || embed?.kind !== 'youtube') return
+    completionReportedRef.current = false
+    youtubeProgressRef.current = { currentTime: 0, duration: 0 }
+  }, [url])
+
+  useEffect(() => {
+    if (!onProgressComplete || (embed?.kind !== 'youtube' && embed?.kind !== 'vimeo')) return
+
+    const reportCompletion = () => {
+      if (completionReportedRef.current) return
+      completionReportedRef.current = true
+      onProgressComplete()
+    }
 
     const handler = (event: MessageEvent) => {
-      if (event.origin !== 'https://www.youtube.com') return
       try {
-        const data = JSON.parse(String(event.data)) as { event?: string; info?: number }
-        if (data.event === 'onStateChange' && data.info === 0) onEnded()
+        const data =
+          typeof event.data === 'string'
+            ? (JSON.parse(event.data) as Record<string, unknown>)
+            : (event.data as Record<string, unknown>)
+
+        if (embed.kind === 'youtube' && event.origin === 'https://www.youtube.com') {
+          if (data.event === 'onStateChange' && data.info === 0) {
+            reportCompletion()
+            return
+          }
+
+          if (data.event === 'infoDelivery' && data.info && typeof data.info === 'object') {
+            const info = data.info as { currentTime?: number; duration?: number }
+            if (typeof info.currentTime === 'number') {
+              youtubeProgressRef.current.currentTime = info.currentTime
+            }
+            if (typeof info.duration === 'number') {
+              youtubeProgressRef.current.duration = info.duration
+            }
+            const { currentTime, duration } = youtubeProgressRef.current
+            if (duration > 0 && currentTime / duration >= COMPLETION_RATIO) reportCompletion()
+          }
+        }
+
+        if (embed.kind === 'vimeo' && event.origin === 'https://player.vimeo.com') {
+          const progress = data.data as { percent?: number } | undefined
+          if (data.event === 'timeupdate' && (progress?.percent ?? 0) >= COMPLETION_RATIO) {
+            reportCompletion()
+          }
+        }
       } catch {
         // ignore non-JSON messages
       }
     }
 
     window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
-  }, [onEnded, embed?.kind])
+    const timer =
+      embed.kind === 'youtube'
+        ? window.setInterval(() => {
+            iframeRef.current?.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }),
+              'https://www.youtube.com',
+            )
+            iframeRef.current?.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'getDuration', args: [] }),
+              'https://www.youtube.com',
+            )
+          }, 1000)
+        : undefined
+
+    return () => {
+      window.removeEventListener('message', handler)
+      if (timer) window.clearInterval(timer)
+    }
+  }, [onProgressComplete, embed?.kind])
+
+  const handleNativeProgress = (event: SyntheticEvent<HTMLVideoElement>) => {
+    const video = event.currentTarget
+    if (
+      !completionReportedRef.current &&
+      video.duration > 0 &&
+      video.currentTime / video.duration >= COMPLETION_RATIO
+    ) {
+      completionReportedRef.current = true
+      onProgressComplete?.()
+    }
+  }
 
   const handleIframeLoad = () => {
-    if (embed?.kind !== 'youtube') return
-    iframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
-      '*',
-    )
+    if (embed?.kind === 'youtube') {
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }),
+        'https://www.youtube.com',
+      )
+    }
+    if (embed?.kind === 'vimeo') {
+      iframeRef.current?.contentWindow?.postMessage(
+        { method: 'addEventListener', value: 'timeupdate' },
+        'https://player.vimeo.com',
+      )
+    }
   }
 
   if (!embed) {
@@ -53,7 +131,8 @@ export function VideoLessonPlayer({ url, title, onEnded }: VideoLessonPlayerProp
           src={embed.embedUrl}
           controls
           title={title}
-          onEnded={onEnded}
+          onTimeUpdate={handleNativeProgress}
+          onEnded={handleNativeProgress}
         />
       </div>
     )

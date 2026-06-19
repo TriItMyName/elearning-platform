@@ -1,13 +1,17 @@
+import type { Quiz } from '@/types/quiz'
+
 export interface Lesson {
   id: number
   chapterId: number
   title: string
+  slug?: string | null
   lessonType: number
   videoUrl: string | null
   documentUrl: string | null
   duration: number | null
   content: string | null
   orderIndex: number
+  quizzes?: Quiz[]
 }
 
 export interface CreateLessonPayload {

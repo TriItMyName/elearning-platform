@@ -52,7 +52,7 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button
         type="button"
         className="absolute inset-0 bg-[#111827]/40 backdrop-blur-[2px] animate-[dialog-overlay-in_180ms_ease-out]"

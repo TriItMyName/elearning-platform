@@ -2,6 +2,7 @@ import { apiClient } from '@/api/client'
 import type {
   CreateQuestionPayload,
   CreateQuizPayload,
+  ImportQuizDocumentPayload,
   Question,
   Quiz,
   UpdateQuestionPayload,
@@ -19,6 +20,21 @@ export const quizzesApi = {
 
   create(courseId: number, chapterId: number, lessonId: number, payload: CreateQuizPayload) {
     return apiClient.post<Quiz>(basePath(courseId, chapterId, lessonId), payload).then((r) => r.data)
+  },
+
+  importDocument(
+    courseId: number,
+    chapterId: number,
+    lessonId: number,
+    payload: ImportQuizDocumentPayload,
+  ) {
+    const form = new FormData()
+    form.append('file', payload.file)
+    if (payload.timeLimit != null) form.append('timeLimit', String(payload.timeLimit))
+    form.append('passScore', String(payload.passScore))
+    return apiClient
+      .post<Quiz>(`${basePath(courseId, chapterId, lessonId)}/import-document`, form)
+      .then((r) => r.data)
   },
 
   update(
