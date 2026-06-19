@@ -45,7 +45,16 @@ public class CourseServiceImpl implements CourseService {
         CourseResponse response = new CourseResponse();
         response.setId(course.getId());
         response.setInstructorId(course.getInstructor() != null ? course.getInstructor().getId() : null);
+        if (course.getInstructor() != null) {
+            String fullName = course.getInstructor().getFullName();
+            response.setInstructorName(
+                    fullName != null && !fullName.isBlank()
+                            ? fullName
+                            : course.getInstructor().getUsername()
+            );
+        }
         response.setCategoryId(course.getCategory() != null ? course.getCategory().getId() : null);
+        response.setCategoryName(course.getCategory() != null ? course.getCategory().getName() : null);
         response.setTitle(course.getTitle());
         response.setSlug(course.getSlug());
         response.setThumbnail(course.getThumbnail());

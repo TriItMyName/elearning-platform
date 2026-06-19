@@ -1,7 +1,9 @@
 export interface Course {
   id: number
   categoryId: number
+  categoryName?: string | null
   instructorId: number
+  instructorName?: string | null
   title: string
   slug: string
   description: string | null
