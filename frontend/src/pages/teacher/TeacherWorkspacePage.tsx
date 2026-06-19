@@ -6,6 +6,7 @@ import {
   BookOpen,
   FileQuestion,
   GraduationCap,
+  Image as ImageIcon,
   Import,
   Layers,
   Mail,
@@ -446,22 +447,34 @@ export function TeacherWorkspacePage() {
           </button>
 
           <AdminCard className="mb-4" padding>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      'inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold',
-                      courseAdminStatusTone(selectedCourse.adminStatus),
-                    )}
-                  >
-                    {teacherAdminStatusLabel(selectedCourse.adminStatus)}
-                  </span>
-                  <span className="text-xs text-[#9ca3af]">
-                    {categoryMap.get(selectedCourse.categoryId) ??
-                      `Danh mục #${selectedCourse.categoryId}`}
-                  </span>
-                </div>
+            <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)_auto] lg:items-start">
+              <div className="relative aspect-video overflow-hidden rounded-xl border border-[#e5e7eb] bg-[#f3f4f6]">
+                {selectedCourse.thumbnail ? (
+                  <img
+                    src={selectedCourse.thumbnail}
+                    alt={`Thumbnail khóa học ${selectedCourse.title}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-[#9ca3af]">
+                    <ImageIcon className="h-7 w-7" />
+                    <span className="text-xs font-medium">Chưa có thumbnail</span>
+                  </div>
+                )}
+                <span
+                  className={cn(
+                    'absolute left-2.5 top-2.5 inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold shadow-sm',
+                    courseAdminStatusTone(selectedCourse.adminStatus),
+                  )}
+                >
+                  {teacherAdminStatusLabel(selectedCourse.adminStatus)}
+                </span>
+              </div>
+              <div className="min-w-0 py-1">
+                <p className="text-xs font-medium text-[#9ca3af]">
+                  {categoryMap.get(selectedCourse.categoryId) ??
+                    `Danh mục #${selectedCourse.categoryId}`}
+                </p>
                 <h2 className="mt-2 text-xl font-bold text-[#111827]">{selectedCourse.title}</h2>
                 {selectedCourse.description ? (
                   <p className="mt-1 text-sm leading-relaxed text-[#6b7280]">
@@ -469,7 +482,7 @@ export function TeacherWorkspacePage() {
                   </p>
                 ) : null}
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex flex-wrap gap-2 lg:justify-end">
                 <Button
                   variant="secondary"
                   size="sm"
