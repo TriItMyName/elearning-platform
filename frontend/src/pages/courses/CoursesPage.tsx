@@ -4,12 +4,14 @@ import { useSearchParams } from 'react-router-dom'
 import { CourseGrid, CourseSkeletonGrid } from '@/components/site/CourseItem'
 import { SectionHeading } from '@/components/site/SectionHeading'
 import { useCategories, useCourses } from '@/hooks/useCourses'
+import { useEnrollmentProgressMap } from '@/hooks/useEnrollment'
 
 export function CoursesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const categoryFilter = searchParams.get('category')
   const { data: coursesPage, isLoading } = useCourses({ page: 0, size: 100 })
   const { data: categoriesPage } = useCategories()
+  const { progressMap: enrollmentProgress } = useEnrollmentProgressMap()
 
   const courses = coursesPage?.content ?? []
   const categories = categoriesPage?.content ?? []
@@ -60,7 +62,7 @@ export function CoursesPage() {
       {isLoading ? (
         <CourseSkeletonGrid />
       ) : filtered.length > 0 ? (
-        <CourseGrid courses={filtered} />
+        <CourseGrid courses={filtered} enrollmentProgress={enrollmentProgress} />
       ) : (
         <div className="rounded-2xl border border-dashed border-[#e0e0e0] bg-[#fafafa] px-6 py-14 text-center text-[#666]">
           Không có khóa học phù hợp bộ lọc.

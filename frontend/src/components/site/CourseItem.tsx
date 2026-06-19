@@ -1,4 +1,4 @@
-import { BookOpen, Calendar, Play } from 'lucide-react'
+import { BookOpen, Calendar, Play, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 
@@ -54,6 +54,48 @@ function formatDate(iso: string) {
   }
 }
 
+function CourseProgressBadge({ percent }: { percent: number }) {
+  const clamped = Math.min(100, Math.max(0, Math.round(percent)))
+  return (
+    <span className="rounded-full bg-[#f05123] px-2.5 py-1 text-[10px] font-bold tabular-nums text-white shadow-sm">
+      {clamped}%
+    </span>
+  )
+}
+
+function CourseProgressBar({
+  courseTitle,
+  percent,
+  className = '',
+}: {
+  courseTitle: string
+  percent: number
+  className?: string
+}) {
+  const clamped = Math.min(100, Math.max(0, Math.round(percent)))
+  return (
+    <div className={className}>
+      <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+        <span className="font-medium text-[#6b7280]">Tiến độ học</span>
+        <span className="font-semibold tabular-nums text-[#f05123]">{clamped}%</span>
+      </div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-[#fde8df]"
+        role="progressbar"
+        aria-label={`Tiến độ khóa học ${courseTitle}`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={clamped}
+      >
+        <div
+          className="h-full rounded-full bg-[#f05123] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 interface CourseItemProps {
   course: Course
   className?: string
@@ -72,10 +114,11 @@ export function CourseItem({
   const statusLabel = COURSE_STATUS_LABEL[course.status] ?? `Trạng thái ${course.status}`
   const continueUrl = useContinueLearnUrl(enrolled ? course : null)
   const isTile = variant === 'tile'
+  const showProgress = enrolled && progressPercent != null
+  const detailUrl = `/courses/${course.slug}`
+  const cardUrl = enrolled ? continueUrl : detailUrl
 
   if (variant === 'compact') {
-    const showProgress = enrolled && progressPercent != null
-    const cardUrl = enrolled ? continueUrl : `/courses/${course.slug}`
 
     return (
       <Link
@@ -98,29 +141,11 @@ export function CourseItem({
           </h3>
 
           {showProgress ? (
-            <div className="mt-1.5">
-              <div className="mb-1 flex items-center justify-between gap-2 text-[10px] sm:text-[11px]">
-                <span className="font-medium text-[#6b7280]">Tiến độ</span>
-                <span className="font-semibold tabular-nums text-[#f05123]">
-                  {Math.round(progressPercent)}%
-                </span>
-              </div>
-              <div
-                className="h-1.5 overflow-hidden rounded-full bg-[#fde8df]"
-                role="progressbar"
-                aria-label={`Tiến độ khóa học ${course.title}`}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progressPercent)}
-              >
-                <div
-                  className="h-full rounded-full bg-[#f05123] transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, Math.round(progressPercent)))}%`,
-                  }}
-                />
-              </div>
-            </div>
+            <CourseProgressBar
+              courseTitle={course.title}
+              percent={progressPercent}
+              className="mt-1.5"
+            />
           ) : course.description ? (
             <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-[#6b7280]">{course.description}</p>
           ) : null}
@@ -161,12 +186,29 @@ export function CourseItem({
       }`}
     >
       <Link
-        to={`/courses/${course.slug}`}
+        to={cardUrl}
         className="group relative block aspect-[276/155] overflow-hidden bg-[#f3f4f6]"
       >
         <CourseCoverImage course={course} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#242424]/55 via-transparent to-transparent opacity-80 transition duration-300 group-hover:opacity-100" />
-        <div className={`absolute flex ${isTile ? 'right-3 top-3' : 'inset-x-0 bottom-0 items-end p-4'}`}>
+        {showProgress ? (
+          <>
+            <div className="absolute left-3 top-3 z-10">
+              <CourseProgressBadge percent={progressPercent} />
+            </div>
+            <div className="absolute inset-x-0 bottom-0 z-10 h-1.5 bg-black/25">
+              <div
+                className="h-full bg-[#f05123] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                style={{
+                  width: `${Math.min(100, Math.max(0, Math.round(progressPercent)))}%`,
+                }}
+              />
+            </div>
+          </>
+        ) : null}
+        <div
+          className={`absolute z-10 flex ${isTile ? 'right-3 top-3' : 'inset-x-0 bottom-0 items-end p-4'}`}
+        >
           <span
             className={`rounded-full font-semibold text-white backdrop-blur-md ${
               isTile
@@ -189,7 +231,13 @@ export function CourseItem({
           </Link>
         </h3>
 
-        {course.description ? (
+        {showProgress ? (
+          <CourseProgressBar
+            courseTitle={course.title}
+            percent={progressPercent}
+            className={isTile ? 'mt-2.5' : 'mt-3'}
+          />
+        ) : course.description ? (
           <p
             className={`mt-2 line-clamp-2 leading-relaxed text-[#6b7280] ${
               isTile ? 'text-[12px]' : 'text-[12px] sm:text-[13px]'
@@ -200,20 +248,31 @@ export function CourseItem({
         ) : null}
 
         <div
-          className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[#9ca3af] ${
+          className={`mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[#9ca3af] ${
             isTile ? 'text-[11px]' : 'text-[12px] sm:text-[13px]'
           }`}
         >
           {!isTile ? (
             <span className="inline-flex items-center gap-1 text-[#6b7280]">
               <BookOpen className="h-3.5 w-3.5 shrink-0" />
-              #{course.categoryId}
+              {course.categoryName ?? `#${course.categoryId}`}
             </span>
           ) : null}
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {formatDate(course.createdAt)}
-          </span>
+          {isTile ? (
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-3.5 w-3.5 shrink-0" />
+              {formatDate(course.createdAt)}
+            </span>
+          ) : null}
+          {!isTile && course.instructorName ? (
+            <span
+              className="ml-auto inline-flex min-w-0 items-center gap-1 text-[#6b7280]"
+              title={course.instructorName}
+            >
+              <UserRound className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{course.instructorName}</span>
+            </span>
+          ) : null}
         </div>
 
         {enrolled ? (
@@ -270,14 +329,24 @@ export function CourseSection({ courses, maxRows = HOME_COURSE_ROWS_GRID }: Cour
 
 interface CourseGridProps {
   courses: Course[]
+  enrollmentProgress?: Map<number, number>
 }
 
-export function CourseGrid({ courses }: CourseGridProps) {
+export function CourseGrid({ courses, enrollmentProgress }: CourseGridProps) {
   return (
     <div className={COURSE_GRID_CLASS_LOOSE}>
-      {courses.map((course) => (
-        <CourseItem key={course.id} course={course} className="w-full shrink" />
-      ))}
+      {courses.map((course) => {
+        const progress = enrollmentProgress?.get(course.id)
+        return (
+          <CourseItem
+            key={course.id}
+            course={course}
+            className="w-full shrink"
+            enrolled={progress != null}
+            progressPercent={progress ?? null}
+          />
+        )
+      })}
     </div>
   )
 }

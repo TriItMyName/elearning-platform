@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { enrollmentApi } from '@/api/enrollment.api'
@@ -47,6 +48,38 @@ export function useEnrollCourse() {
       void queryClient.invalidateQueries({ queryKey: ['courses', courseId, 'student-count'] })
     },
   })
+}
+
+export function useEnrollmentProgressMap() {
+  const { isAuthenticated, user } = useAuth()
+  const { data: enrolledIds = [], isLoading: idsLoading } = useEnrolledCourseIds()
+  const { data: progressOverview, isLoading: progressLoading } = useStudentProgressOverview(
+    isAuthenticated && user != null,
+  )
+
+  const progressMap = useMemo(() => {
+    const map = new Map<number, number>()
+    const enrolledSet = new Set(enrolledIds)
+
+    for (const item of progressOverview?.courses ?? []) {
+      if (enrolledSet.has(item.courseId)) {
+        map.set(item.courseId, Math.round(item.progress ?? 0))
+      }
+    }
+
+    for (const id of enrolledIds) {
+      if (!map.has(id)) {
+        map.set(id, 0)
+      }
+    }
+
+    return map
+  }, [enrolledIds, progressOverview])
+
+  return {
+    progressMap,
+    isLoading: idsLoading || progressLoading,
+  }
 }
 
 export function useEnrolledCourses() {

@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { CategoryCourseTile, CategoryCourseTileSkeleton } from '@/components/site/CategoryCourseTile'
 import { HOME_SECTION_INSET_CLASS } from '@/constants/layout'
 import { useCategories, useCourses } from '@/hooks/useCourses'
+import { useEnrollmentProgressMap } from '@/hooks/useEnrollment'
 import type { Category } from '@/types/category'
 import type { Course } from '@/types/course'
 
@@ -44,6 +45,7 @@ function groupCoursesByCategory(courses: Course[], categories: Category[]) {
 export function HomePage() {
   const { data: coursesPage, isLoading: coursesLoading } = useCourses({ page: 0, size: 100 })
   const { data: categoriesPage, isLoading: categoriesLoading } = useCategories()
+  const { progressMap: enrollmentProgress } = useEnrollmentProgressMap()
   const courses = coursesPage?.content ?? []
   const categories = categoriesPage?.content ?? []
 
@@ -102,6 +104,7 @@ export function HomePage() {
               key={section.category.id}
               category={section.category}
               courses={section.courses}
+              enrollmentProgress={enrollmentProgress}
             />
           ))
         ) : (

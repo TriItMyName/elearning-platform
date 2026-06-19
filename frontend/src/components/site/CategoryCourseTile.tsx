@@ -9,11 +9,16 @@ interface CategoryCourseTileProps {
   category: Category
   courses: Course[]
   maxCourses?: number
+  enrollmentProgress?: Map<number, number>
 }
 
-export function CategoryCourseTile({ category, courses, maxCourses = 10 }: CategoryCourseTileProps) {
+export function CategoryCourseTile({
+  category,
+  courses,
+  maxCourses = 6,
+  enrollmentProgress,
+}: CategoryCourseTileProps) {
   const visibleCourses = courses.slice(0, maxCourses)
-  const hasMore = courses.length > maxCourses
 
   return (
     <section className="relative">
@@ -50,14 +55,22 @@ export function CategoryCourseTile({ category, courses, maxCourses = 10 }: Categ
 
       <div className="relative -mx-1">
         <div className="flex gap-4 overflow-x-auto px-1 pb-1 scrollbar-thin snap-x snap-mandatory">
-          {visibleCourses.map((course) => (
-            <div
-              key={course.id}
-              className="w-[min(82vw,280px)] shrink-0 snap-start sm:w-[272px]"
-            >
-              <CourseItem course={course} variant="tile" />
-            </div>
-          ))}
+          {visibleCourses.map((course) => {
+            const progress = enrollmentProgress?.get(course.id)
+            return (
+              <div
+                key={course.id}
+                className="w-[min(82vw,280px)] shrink-0 snap-start sm:w-[272px]"
+              >
+                <CourseItem
+                  course={course}
+                  variant="tile"
+                  enrolled={progress != null}
+                  progressPercent={progress ?? null}
+                />
+              </div>
+            )
+          })}
         </div>
         <div
           aria-hidden
@@ -65,16 +78,6 @@ export function CategoryCourseTile({ category, courses, maxCourses = 10 }: Categ
         />
       </div>
 
-      {hasMore ? (
-        <div className="mt-5 flex justify-start sm:mt-6">
-          <Link
-            to={`/courses?category=${category.id}`}
-            className="inline-flex h-10 items-center rounded-full border border-[#f05123]/35 bg-[#fff8f5] px-5 text-sm font-semibold text-[#f05123] transition duration-300 hover:border-[#f05123] hover:bg-[#fff4ef] active:scale-[0.98]"
-          >
-            Xem thêm {courses.length - maxCourses} khóa học
-          </Link>
-        </div>
-      ) : null}
     </section>
   )
 }
