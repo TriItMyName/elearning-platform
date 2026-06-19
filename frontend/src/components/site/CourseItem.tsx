@@ -15,14 +15,28 @@ import type { Course } from '@/types/course'
 
 const GRADIENTS = [
   'from-[#f05123] to-[#ff7849]',
-  'from-[#1473e6] to-[#4da3ff]',
-  'from-[#7c3aed] to-[#a78bfa]',
+  'from-[#ea580c] to-[#fb923c]',
+  'from-[#78716c] to-[#a8a29e]',
   'from-[#059669] to-[#34d399]',
-  'from-[#db2777] to-[#f472b6]',
+  'from-[#b45309] to-[#fbbf24]',
 ]
 
 function courseGradient(id: number) {
   return GRADIENTS[id % GRADIENTS.length]
+}
+
+function CourseCoverImage({
+  course,
+  className = 'h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]',
+}: {
+  course: Pick<Course, 'id' | 'thumbnail'>
+  className?: string
+}) {
+  if (course.thumbnail) {
+    return <img src={course.thumbnail} alt="" className={className} loading="lazy" />
+  }
+
+  return <div className={`h-full w-full bg-gradient-to-br ${courseGradient(course.id)}`} />
 }
 
 function formatDate(iso: string) {
@@ -37,43 +51,77 @@ interface CourseItemProps {
   course: Course
   className?: string
   enrolled?: boolean
+  variant?: 'default' | 'tile'
 }
 
-export function CourseItem({ course, className = 'w-full', enrolled = false }: CourseItemProps) {
+export function CourseItem({
+  course,
+  className = 'w-full',
+  enrolled = false,
+  variant = 'default',
+}: CourseItemProps) {
   const statusLabel = COURSE_STATUS_LABEL[course.status] ?? `Trạng thái ${course.status}`
   const continueUrl = useContinueLearnUrl(enrolled ? course : null)
+  const isTile = variant === 'tile'
 
   return (
-    <div className={`${className} min-w-0 overflow-hidden rounded-2xl bg-[rgba(0,0,0,0.03)]`}>
+    <div
+      className={`${className} min-w-0 overflow-hidden rounded-2xl transition duration-300 ${
+        isTile
+          ? 'bg-white ring-1 ring-[#f0f0f0] shadow-[0_1px_2px_rgba(36,36,36,0.04)] hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-18px_rgba(240,81,35,0.35)] hover:ring-[#f05123]/20 active:scale-[0.99]'
+          : 'bg-[rgba(0,0,0,0.03)]'
+      }`}
+    >
       <Link
         to={`/courses/${course.slug}`}
-        className={`group relative block aspect-[276/155] overflow-hidden bg-gradient-to-br ${courseGradient(course.id)}`}
+        className="group relative block aspect-[276/155] overflow-hidden bg-[#f3f4f6]"
       >
-        <div className="absolute inset-0 flex items-end p-4">
-          <span className="rounded-full bg-black/25 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+        <CourseCoverImage course={course} />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#242424]/55 via-transparent to-transparent opacity-80 transition duration-300 group-hover:opacity-100" />
+        <div className={`absolute flex ${isTile ? 'right-3 top-3' : 'inset-x-0 bottom-0 items-end p-4'}`}>
+          <span
+            className={`rounded-full font-semibold text-white backdrop-blur-md ${
+              isTile
+                ? 'bg-[#242424]/45 px-2.5 py-1 text-[10px] tracking-wide'
+                : 'bg-black/25 px-2.5 py-1 text-[11px]'
+            }`}
+          >
             {statusLabel}
           </span>
         </div>
       </Link>
 
-      <div className="px-3 pb-3 pt-3 sm:px-5 sm:pb-4 sm:pt-[17px]">
-        <h3 className="line-clamp-2 text-[14px] font-bold leading-snug sm:text-[16px]">
-          <Link to={`/courses/${course.slug}`} className="text-[#333] hover:text-[#f05123]">
+      <div className={isTile ? 'px-4 pb-4 pt-3.5' : 'px-3 pb-3 pt-3 sm:px-5 sm:pb-4 sm:pt-[17px]'}>
+        <h3 className={`line-clamp-2 font-bold leading-snug ${isTile ? 'text-[15px]' : 'text-[14px] sm:text-[16px]'}`}>
+          <Link
+            to={`/courses/${course.slug}`}
+            className="text-[#292929] transition hover:text-[#f05123]"
+          >
             {course.title}
           </Link>
         </h3>
 
         {course.description ? (
-          <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-[#666] sm:text-[13px]">
+          <p
+            className={`mt-2 line-clamp-2 leading-relaxed text-[#6b7280] ${
+              isTile ? 'text-[12px]' : 'text-[12px] sm:text-[13px]'
+            }`}
+          >
             {course.description}
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#666] sm:text-[13px]">
-          <span className="inline-flex items-center gap-1">
-            <BookOpen className="h-3.5 w-3.5 shrink-0" />
-            #{course.categoryId}
-          </span>
+        <div
+          className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[#9ca3af] ${
+            isTile ? 'text-[11px]' : 'text-[12px] sm:text-[13px]'
+          }`}
+        >
+          {!isTile ? (
+            <span className="inline-flex items-center gap-1 text-[#6b7280]">
+              <BookOpen className="h-3.5 w-3.5 shrink-0" />
+              #{course.categoryId}
+            </span>
+          ) : null}
           <span className="inline-flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5 shrink-0" />
             {formatDate(course.createdAt)}

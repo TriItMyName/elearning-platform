@@ -74,15 +74,35 @@ export function CourseDetailPage() {
   return (
     <div className="space-y-10">
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-[#f0f0f0]">
-        <div className="relative bg-gradient-to-br from-[#f05123] to-[#ff7849] px-6 py-14 sm:px-10 sm:py-16">
-          <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
-            {statusLabel}
-          </span>
-          <h1 className="mt-4 max-w-3xl text-2xl font-bold text-white sm:text-4xl">{course.title}</h1>
-          {course.description ? (
-            <p className="mt-4 max-w-2xl text-white/90">{course.description}</p>
-          ) : null}
-        </div>
+        {course.thumbnail ? (
+          <div className="relative min-h-[220px] overflow-hidden sm:min-h-[280px]">
+            <img
+              src={course.thumbnail}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/10" />
+            <div className="relative px-6 py-14 sm:px-10 sm:py-16">
+              <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
+                {statusLabel}
+              </span>
+              <h1 className="mt-4 max-w-3xl text-2xl font-bold text-white sm:text-4xl">{course.title}</h1>
+              {course.description ? (
+                <p className="mt-4 max-w-2xl text-white/90">{course.description}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <div className="relative bg-gradient-to-br from-[#f05123] to-[#ff7849] px-6 py-14 sm:px-10 sm:py-16">
+            <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
+              {statusLabel}
+            </span>
+            <h1 className="mt-4 max-w-3xl text-2xl font-bold text-white sm:text-4xl">{course.title}</h1>
+            {course.description ? (
+              <p className="mt-4 max-w-2xl text-white/90">{course.description}</p>
+            ) : null}
+          </div>
+        )}
 
         <div className="grid gap-6 p-6 sm:p-8">
           <div className="flex flex-wrap gap-4 text-sm text-[#666]">
