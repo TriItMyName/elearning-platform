@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
 
 import { useChartDraw } from '@/components/admin/dashboard/dashboard-motion'
-import type { EnrollmentTrendPoint } from '@/types/reports'
+import type { DashboardEnrollmentTrendPoint } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 
 interface DashboardEnrollmentChartProps {
-  data: EnrollmentTrendPoint[]
+  data: DashboardEnrollmentTrendPoint[]
   ready?: boolean
 }
 
@@ -55,7 +55,7 @@ function smoothLinePath(points: Array<{ x: number; y: number }>) {
   return d
 }
 
-function buildChartGeometry(data: EnrollmentTrendPoint[]) {
+function buildChartGeometry(data: DashboardEnrollmentTrendPoint[]) {
   if (data.length === 0) {
     return {
       enrollLine: '',

@@ -1,13 +1,12 @@
-import { BookOpenCheck, ClipboardList, HelpCircle, UserPlus } from 'lucide-react'
+import { BookOpenCheck, HelpCircle, UserPlus } from 'lucide-react'
 
-import type { ReportActivityItem } from '@/types/reports'
+import type { DashboardActivityItem } from '@/types/dashboard'
 import { cn } from '@/lib/utils'
 
 const TYPE_META = {
   enrollment: { icon: UserPlus, color: 'bg-[#fff4f0] text-[#f05123]', label: 'Ghi danh' },
   quiz: { icon: HelpCircle, color: 'bg-[#eff6ff] text-[#2563eb]', label: 'Quiz' },
   lesson: { icon: BookOpenCheck, color: 'bg-[#ecfdf5] text-[#059669]', label: 'Bài học' },
-  assignment: { icon: ClipboardList, color: 'bg-[#f5f3ff] text-[#7c3aed]', label: 'Bài tập' },
 } as const
 
 function formatRelativeTime(iso: string) {
@@ -22,7 +21,7 @@ function formatRelativeTime(iso: string) {
 }
 
 interface DashboardActivityFeedProps {
-  items: ReportActivityItem[]
+  items: DashboardActivityItem[]
 }
 
 export function DashboardActivityFeed({ items }: DashboardActivityFeedProps) {

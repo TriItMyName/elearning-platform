@@ -5,19 +5,16 @@ import { useCountUp, useRingProgress } from '@/components/admin/dashboard/dashbo
 interface DashboardCompletionRingProps {
   percent: number
   quizAttempts: number
-  assignmentSubmissions: number
   ready?: boolean
 }
 
 export function DashboardCompletionRing({
   percent,
   quizAttempts,
-  assignmentSubmissions,
   ready = true,
 }: DashboardCompletionRingProps) {
   const ringRef = useRef<SVGCircleElement>(null)
   const quizRef = useCountUp(quizAttempts, ready)
-  const assignRef = useCountUp(assignmentSubmissions, ready)
 
   useRingProgress(ringRef, percent, ready)
 
@@ -55,19 +52,11 @@ export function DashboardCompletionRing({
         </div>
       </div>
 
-      <div className="mt-auto grid grid-cols-2 gap-3 border-t border-[#2a2a2a] pt-4">
-        <div className="rounded-xl bg-[#252525] px-3 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[#888]">Quiz</p>
-          <p className="mt-1 text-xl font-bold">
-            <span ref={quizRef}>0</span>
-          </p>
-        </div>
-        <div className="rounded-xl bg-[#252525] px-3 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-[#888]">Bài nộp</p>
-          <p className="mt-1 text-xl font-bold">
-            <span ref={assignRef}>0</span>
-          </p>
-        </div>
+      <div className="mt-auto rounded-xl bg-[#252525] px-3 py-3">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-[#888]">Lượt làm quiz</p>
+        <p className="mt-1 text-xl font-bold">
+          <span ref={quizRef}>0</span>
+        </p>
       </div>
     </div>
   )

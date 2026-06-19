@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 
-import type { TopCourseStat } from '@/types/reports'
+import type { DashboardTopCourse } from '@/types/dashboard'
 
 interface DashboardTopCoursesProps {
-  courses: TopCourseStat[]
+  courses: DashboardTopCourse[]
 }
 
 export function DashboardTopCourses({ courses }: DashboardTopCoursesProps) {
@@ -18,10 +18,10 @@ export function DashboardTopCourses({ courses }: DashboardTopCoursesProps) {
           <p className="mt-1 text-sm text-[#6b7280]">Theo lượt ghi danh và tỷ lệ hoàn thành</p>
         </div>
         <Link
-          to="/admin/reports"
+          to="/admin/courses"
           className="inline-flex cursor-pointer items-center gap-1 text-xs font-semibold text-[#f05123] transition hover:underline"
         >
-          Báo cáo đầy đủ <ArrowRight className="h-3.5 w-3.5" />
+          Xem khóa học <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 

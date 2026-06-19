@@ -6,7 +6,6 @@ export type MetricCardId =
   | 'roles'
   | 'completion-rate'
   | 'quiz-attempts'
-  | 'assignments'
   | 'accounts'
   | 'permissions'
 
@@ -25,7 +24,6 @@ export const ALL_METRIC_IDS: MetricCardId[] = [
   'roles',
   'completion-rate',
   'quiz-attempts',
-  'assignments',
   'accounts',
   'permissions',
 ]
@@ -38,7 +36,6 @@ const DEFAULT_VISIBLE: Record<MetricCardId, boolean> = {
   roles: true,
   'completion-rate': true,
   'quiz-attempts': false,
-  assignments: false,
   accounts: false,
   permissions: false,
 }
