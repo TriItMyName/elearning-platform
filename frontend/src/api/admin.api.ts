@@ -29,6 +29,7 @@ import type {
   UpdateAdminCoursePayload,
   UpdateAdminLessonPayload,
 } from '@/types/admin-course'
+import type { AdminStudentLearning, AdminStudentOverview } from '@/types/admin-student'
 
 export interface AdminPageParams {
   page?: number
@@ -55,6 +56,17 @@ export const adminApi = {
     },
     delete(id: number) {
       return apiClient.delete(`/admin/users/${id}`)
+    },
+  },
+
+  students: {
+    list(params: AdminPageParams & { keyword?: string } = { page: 0, size: 10 }) {
+      return apiClient
+        .get<PageResponse<AdminStudentOverview>>('/admin/students', { params })
+        .then((r) => r.data)
+    },
+    learning(id: number) {
+      return apiClient.get<AdminStudentLearning>(`/admin/students/${id}/learning`).then((r) => r.data)
     },
   },
 

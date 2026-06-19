@@ -38,7 +38,7 @@ export type AdminUsersMode = 'students' | 'accounts'
 const MODE_CONFIG = {
   students: {
     title: 'Học viên',
-    description: 'Danh sách tài khoản học viên. Tài khoản khóa hoặc vô hiệu vẫn hiển thị nhưng mờ hơn.',
+    description: 'Danh sách học viên.',
     createLabel: 'Thêm học viên',
     emptyMessage: 'Không tìm thấy học viên.',
     editTitle: 'Sửa học viên',

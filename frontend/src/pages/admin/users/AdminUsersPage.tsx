@@ -1,5 +1,5 @@
-import { AdminUsersManagement } from '@/pages/admin/users/AdminUsersManagement'
+import { AdminStudentsPage } from '@/pages/admin/users/AdminStudentsPage'
 
 export function AdminUsersPage() {
-  return <AdminUsersManagement mode="students" />
+  return <AdminStudentsPage />
 }
