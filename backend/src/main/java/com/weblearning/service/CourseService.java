@@ -35,9 +35,9 @@ public interface CourseService {
 
     CourseContentResponse getCourseContentForStudent(Long id, User student);
 
-    CourseResponse createForInstructor(Course course, User instructor);
+    CourseResponse createForInstructor(Course course, User instructor, boolean submitForReview);
 
-    CourseResponse updateForInstructor(Long id, Course course, User instructor);
+    CourseResponse updateForInstructor(Long id, Course course, User instructor, boolean submitForReview);
 
     void deleteForInstructor(Long id, User instructor);
 }

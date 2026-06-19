@@ -34,4 +34,6 @@ public interface AdminCourseRepository extends JpaRepository<Course, Long>, JpaS
 
     boolean existsBySlugAndDeletedFalse(String slug);
 
+    long countByDeletedFalse();
+
 }

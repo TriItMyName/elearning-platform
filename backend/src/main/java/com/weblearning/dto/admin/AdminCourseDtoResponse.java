@@ -18,6 +18,7 @@ public class AdminCourseDtoResponse {
     private String title;
     private String slug;
     private String description;
+    private String thumbnail;
     private CourseStatus adminStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

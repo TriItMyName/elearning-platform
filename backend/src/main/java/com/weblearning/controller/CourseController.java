@@ -163,7 +163,8 @@ public class CourseController {
     ) {
         User instructor = getCurrentUser(authentication);
         Course course = toEntity(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(courseService.createForInstructor(course, instructor));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(courseService.createForInstructor(course, instructor, Boolean.TRUE.equals(request.getSubmitForReview())));
     }
 
     @PutMapping("/teacher/{id}")
@@ -175,7 +176,7 @@ public class CourseController {
         try {
             User instructor = getCurrentUser(authentication);
             Course course = toEntity(request);
-            return ResponseEntity.ok(courseService.updateForInstructor(id, course, instructor));
+            return ResponseEntity.ok(courseService.updateForInstructor(id, course, instructor, Boolean.TRUE.equals(request.getSubmitForReview())));
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         } catch (SecurityException ex) {

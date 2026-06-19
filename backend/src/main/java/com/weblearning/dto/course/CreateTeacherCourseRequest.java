@@ -30,6 +30,11 @@ public class CreateTeacherCourseRequest {
     @Size(max = 500)
     private String thumbnail;
 
+    /**
+     * true = gửi duyệt (PENDING), false/null = lưu nháp (DRAFT)
+     */
+    private Boolean submitForReview;
+
     private LocalDateTime createdAt;
 
     public CreateTeacherCourseRequest(

@@ -54,6 +54,7 @@ public class AdminCourseServiceImpl implements AdminCourseService {
                 course.getTitle(),
                 course.getSlug(),
                 course.getDescription(),
+                course.getThumbnail(),
                 course.getAdminStatus(),
                 course.getCreatedAt(),
                 course.getUpdatedAt());
@@ -92,6 +93,7 @@ public class AdminCourseServiceImpl implements AdminCourseService {
                 .title(request.getTitle())
                 .slug(slug)
                 .description(request.getDescription())
+                .thumbnail(request.getThumbnail())
                 .status(0)
                 .adminStatus(request.getAdminStatus() != null ? request.getAdminStatus() : CourseStatus.DRAFT)
                 .createdAt(LocalDateTime.now())
@@ -116,21 +118,31 @@ public class AdminCourseServiceImpl implements AdminCourseService {
     }
 
     private List<AdminCourseDtoResponse> getAllCoursesRaw() {
-        long now = System.currentTimeMillis();
-        synchronized (cacheLock) {
-            if (cachedCourses == null || now > cacheExpiryTime) {
-                cachedCourses = adminCourseRepository.findByDeletedFalse().stream()
-                        .map(this::mapToCourseDtoResponse)
-                        .toList();
-                cacheExpiryTime = now + (5 * 60 * 1000); // 5 minutes cache TTL
-            }
-            return cachedCourses;
-        }
+        // NOTE: Disable in-memory cache for admin courses list.
+        // Always read from DB so soft-delete/restore reflects immediately.
+        return adminCourseRepository.findByDeletedFalse().stream()
+                .map(this::mapToCourseDtoResponse)
+                .toList();
+
+        // ---- Previous cache implementation (kept for reference; do not delete) ----
+        // long now = System.currentTimeMillis();
+        // synchronized (cacheLock) {
+        //     if (cachedCourses == null || now > cacheExpiryTime) {
+        //         cachedCourses = adminCourseRepository.findByDeletedFalse().stream()
+        //                 .map(this::mapToCourseDtoResponse)
+        //                 .toList();
+        //         cacheExpiryTime = now + (5 * 60 * 1000); // 5 minutes cache TTL
+        //     }
+        //     return cachedCourses;
+        // }
     }
 
     @Override
     public Page<AdminCourseDtoResponse> getAllCourses(Pageable pageable) {
-        List<AdminCourseDtoResponse> list = new ArrayList<>(getAllCoursesRaw());
+        List<AdminCourseDtoResponse> list = getAllCoursesRaw().stream()
+                .filter(course -> course.getAdminStatus() != CourseStatus.PENDING
+                        && course.getAdminStatus() != CourseStatus.REJECTED)
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (pageable.getSort().isSorted()) {
             Sort.Order order = pageable.getSort().iterator().next();
@@ -209,6 +221,10 @@ public class AdminCourseServiceImpl implements AdminCourseService {
 
         if (request.getDescription() != null) {
             course.setDescription(request.getDescription());
+        }
+
+        if (request.getThumbnail() != null) {
+            course.setThumbnail(request.getThumbnail());
         }
 
         if (request.getAdminStatus() != null) {
@@ -307,7 +323,8 @@ public class AdminCourseServiceImpl implements AdminCourseService {
             throw new IllegalStateException("Cannot approve: Course is not in PENDING or REJECTED status. Current status: " + course.getAdminStatus());
         }
 
-        course.setAdminStatus(CourseStatus.APPROVED);
+        course.setAdminStatus(CourseStatus.PUBLISHED);
+        course.setStatus(1);
         course.setUpdatedAt(LocalDateTime.now());
         Course approvedCourse = adminCourseRepository.save(course);
         clearCache();

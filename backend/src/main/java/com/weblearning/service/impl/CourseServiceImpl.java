@@ -165,18 +165,18 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public CourseResponse createForInstructor(Course course, User instructor) {
+    public CourseResponse createForInstructor(Course course, User instructor, boolean submitForReview) {
         course.setInstructor(instructor);
         course.setSlug(resolveSlug(course.getSlug(), course.getTitle()));
         course.setStatus(0);
-        course.setAdminStatus(CourseStatus.DRAFT);
+        course.setAdminStatus(resolveTeacherAdminStatus(submitForReview));
         course.setCreatedAt(course.getCreatedAt() != null ? course.getCreatedAt() : LocalDateTime.now());
         course.setDeleted(false);
         return toCourseResponse(courseRepository.save(course));
     }
 
     @Override
-    public CourseResponse updateForInstructor(Long id, Course course, User instructor) {
+    public CourseResponse updateForInstructor(Long id, Course course, User instructor, boolean submitForReview) {
         Course existing = courseRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + id));
         if (existing.getInstructor() == null || !existing.getInstructor().getId().equals(instructor.getId())) {
@@ -188,7 +188,7 @@ public class CourseServiceImpl implements CourseService {
         existing.setThumbnail(course.getThumbnail());
         existing.setCategory(course.getCategory());
         existing.setStatus(0);
-        existing.setAdminStatus(CourseStatus.DRAFT);
+        existing.setAdminStatus(resolveTeacherAdminStatus(submitForReview));
         existing.setUpdatedAt(LocalDateTime.now());
         return toCourseResponse(courseRepository.save(existing));
     }
@@ -269,5 +269,9 @@ public class CourseServiceImpl implements CourseService {
             return StringUnitls.toSlug(slug);
         }
         return StringUnitls.toSlug(title);
+    }
+
+    private CourseStatus resolveTeacherAdminStatus(boolean submitForReview) {
+        return submitForReview ? CourseStatus.PENDING : CourseStatus.DRAFT;
     }
 }

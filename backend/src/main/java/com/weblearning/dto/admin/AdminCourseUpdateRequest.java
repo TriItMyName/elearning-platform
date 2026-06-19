@@ -2,6 +2,7 @@ package com.weblearning.dto.admin;
 
 import com.weblearning.entity.enums.CourseStatus;
 
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,9 @@ public class AdminCourseUpdateRequest {
     private String title;
 
     private String description;
+
+    @Size(max = 500)
+    private String thumbnail;
 
     private CourseStatus adminStatus;
 }

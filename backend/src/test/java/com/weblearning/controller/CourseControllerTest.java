@@ -146,7 +146,7 @@ class CourseControllerTest {
         created.setInstructorId(3L);
 
         when(authService.getUserByUserName("teacher")).thenReturn(instructor);
-        when(courseService.createForInstructor(any(Course.class), eq(instructor))).thenReturn(created);
+        when(courseService.createForInstructor(any(Course.class), eq(instructor), eq(false))).thenReturn(created);
 
         CreateTeacherCourseRequest request = new CreateTeacherCourseRequest(2L, "Java", "java", "Desc", 1, null);
 
@@ -163,7 +163,7 @@ class CourseControllerTest {
         User instructor = userWithId(3L);
 
         when(authService.getUserByUserName("teacher")).thenReturn(instructor);
-        when(courseService.updateForInstructor(eq(1L), any(Course.class), eq(instructor)))
+        when(courseService.updateForInstructor(eq(1L), any(Course.class), eq(instructor), eq(false)))
                 .thenThrow(new SecurityException("Forbidden"));
 
         UpdateTeacherCourseRequest request = new UpdateTeacherCourseRequest(2L, "Java", "java", "Desc", 1, null);
