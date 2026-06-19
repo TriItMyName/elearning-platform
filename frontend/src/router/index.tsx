@@ -48,6 +48,10 @@ import { LoginPage } from '@/pages/LoginPage'
 
 import { MyCoursesPage } from '@/pages/MyCoursesPage'
 
+import { StudentProgressPage } from '@/pages/student/StudentProgressPage'
+
+import { StudentCertificatesPage } from '@/pages/student/StudentCertificatesPage'
+
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -73,6 +77,10 @@ export const router = createBrowserRouter([
       { path: 'courses/:slug', element: <CourseDetailPage /> },
 
       { path: 'my-courses', element: <MyCoursesPage /> },
+
+      { path: 'my-progress', element: <StudentProgressPage /> },
+
+      { path: 'my-certificates', element: <StudentCertificatesPage /> },
 
       { path: 'settings', element: <SettingsPage /> },
 

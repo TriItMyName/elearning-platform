@@ -119,11 +119,25 @@ export function Header() {
                       </Link>
                     ) : null}
                     <Link
+                      to="/my-certificates"
+                      className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Chứng chỉ
+                    </Link>
+                    <Link
                       to="/my-courses"
                       className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       Khóa học của tôi
+                    </Link>
+                    <Link
+                      to="/my-progress"
+                      className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Tiến độ học tập
                     </Link>
                     <button
                       type="button"
