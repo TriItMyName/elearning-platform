@@ -15,6 +15,12 @@ export const enrollmentApi = {
     return enrollmentApi.getEnrolledCourseIds().then((ids) => ids.includes(courseId))
   },
 
+  countStudents(courseId: number): Promise<number> {
+    return apiClient
+      .get<number>(`/courses/${courseId}/enrollment-count`)
+      .then((response) => response.data)
+  },
+
   enroll(courseId: number): Promise<number[]> {
     return apiClient
       .post<TeacherEnrollment>(`/courses/${courseId}/enroll`)

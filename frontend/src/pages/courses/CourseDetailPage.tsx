@@ -1,19 +1,20 @@
-import { BookOpen, Calendar, FolderOpen, Play } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { BookOpen, Calendar, FolderOpen, Play, UserRound, Users } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { chaptersApi } from '@/api/chapters.api'
+import { useAuth } from '@/auth/auth.context'
 import { CourseGrid } from '@/components/site/CourseItem'
 import { Button } from '@/components/ui/Button'
-import { useAuth } from '@/auth/auth.context'
-import { COURSE_STATUS_LABEL } from '@/types/course'
-import { useCourseBySlug, useCourses } from '@/hooks/useCourses'
 import {
   useContinueLearnUrl,
   useCourseEnrollment,
+  useCourseStudentCount,
   useEnrollCourse,
 } from '@/hooks/useEnrollment'
+import { useCourseBySlug, useCourses } from '@/hooks/useCourses'
 import { notify } from '@/lib/notify'
+import { COURSE_STATUS_LABEL } from '@/types/course'
 
 export function CourseDetailPage() {
   const { slug = '' } = useParams()
@@ -21,10 +22,11 @@ export function CourseDetailPage() {
   const { isAuthenticated } = useAuth()
   const { data: coursesPage } = useCourses({ page: 0, size: 100 })
   const allCourses = coursesPage?.content ?? []
-  const match = allCourses.find((c) => c.slug === slug)
+  const match = allCourses.find((item) => item.slug === slug)
   const { data: course, isLoading } = useCourseBySlug(slug, allCourses)
 
   const enrollmentQuery = useCourseEnrollment(match?.id ?? null)
+  const studentCountQuery = useCourseStudentCount(match?.id ?? null)
   const enrolled = enrollmentQuery.data === true
   const enrollMutation = useEnrollCourse()
   const continueUrl = useContinueLearnUrl(course)
@@ -35,7 +37,9 @@ export function CourseDetailPage() {
     enabled: match != null,
   })
 
-  const related = allCourses.filter((c) => c.slug !== slug && c.categoryId === match?.categoryId).slice(0, 4)
+  const related = allCourses
+    .filter((item) => item.slug !== slug && item.categoryId === match?.categoryId)
+    .slice(0, 4)
 
   const handleEnroll = () => {
     if (!course) return
@@ -49,19 +53,23 @@ export function CourseDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-6">
-        <div className="h-64 rounded-2xl bg-gray-200" />
-        <div className="h-8 w-2/3 rounded bg-gray-200" />
-        <div className="h-4 w-full rounded bg-gray-200" />
+      <div className="mx-auto grid max-w-[1120px] animate-pulse gap-6 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div>
+          <div className="h-5 w-24 rounded bg-[#ececec]" />
+          <div className="mt-4 h-8 w-2/3 rounded bg-[#e8e8e8]" />
+          <div className="mt-8 h-32 rounded-xl bg-[#f0f0f0]" />
+          <div className="mt-5 h-44 rounded-xl bg-[#f0f0f0]" />
+        </div>
+        <div className="h-[290px] rounded-2xl bg-[#ececec]" />
       </div>
     )
   }
 
   if (!course) {
     return (
-      <div className="py-20 text-center">
-        <h1 className="text-2xl font-bold">Không tìm thấy khóa học</h1>
-        <Link to="/courses" className="mt-4 inline-block text-[#f05123] hover:underline">
+      <div className="py-16 text-center">
+        <h1 className="text-xl font-bold text-[#242424]">Không tìm thấy khóa học</h1>
+        <Link to="/courses" className="mt-4 inline-block text-sm font-semibold text-[#f05123] hover:underline">
           Xem danh sách khóa học
         </Link>
       </div>
@@ -72,103 +80,132 @@ export function CourseDetailPage() {
   const statusLabel = COURSE_STATUS_LABEL[course.status] ?? `Trạng thái ${course.status}`
 
   return (
-    <div className="space-y-10">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-[#f0f0f0]">
-        {course.thumbnail ? (
-          <div className="relative min-h-[220px] overflow-hidden sm:min-h-[280px]">
-            <img
-              src={course.thumbnail}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/10" />
-            <div className="relative px-6 py-14 sm:px-10 sm:py-16">
-              <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-                {statusLabel}
-              </span>
-              <h1 className="mt-4 max-w-3xl text-2xl font-bold text-white sm:text-4xl">{course.title}</h1>
-              {course.description ? (
-                <p className="mt-4 max-w-2xl text-white/90">{course.description}</p>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          <div className="relative bg-gradient-to-br from-[#f05123] to-[#ff7849] px-6 py-14 sm:px-10 sm:py-16">
-            <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
-              {statusLabel}
-            </span>
-            <h1 className="mt-4 max-w-3xl text-2xl font-bold text-white sm:text-4xl">{course.title}</h1>
-            {course.description ? (
-              <p className="mt-4 max-w-2xl text-white/90">{course.description}</p>
-            ) : null}
-          </div>
-        )}
+    <div className="mx-auto max-w-[1120px] py-4 sm:py-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="min-w-0">
+          <span className="inline-flex rounded-md bg-[#fff0eb] px-2.5 py-1 text-xs font-semibold text-[#d9481e]">
+            {statusLabel}
+          </span>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-[#242424] sm:text-3xl">
+            {course.title}
+          </h1>
 
-        <div className="grid gap-6 p-6 sm:p-8">
-          <div className="flex flex-wrap gap-4 text-sm text-[#666]">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#6b7280]">
             <span className="inline-flex items-center gap-1.5">
-              <FolderOpen className="h-4 w-4" />
-              Danh mục #{course.categoryId}
+              <FolderOpen className="h-3.5 w-3.5" />
+              {course.categoryName ?? `Danh mục #${course.categoryId}`}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4" />
-              Giảng viên #{course.instructorId}
+              <UserRound className="h-3.5 w-3.5" />
+              {course.instructorName ?? `Giảng viên #${course.instructorId}`}
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
+            <span className="inline-flex items-center gap-1.5 tabular-nums">
+              <Calendar className="h-3.5 w-3.5" />
               {new Date(course.createdAt).toLocaleDateString('vi-VN')}
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            {!isAuthenticated ? (
-              <Link to="/login" state={{ from: `/learn/${slug}` }}>
-                <Button>Đăng nhập để học</Button>
-              </Link>
-            ) : enrollmentQuery.isLoading ? (
-              <Button disabled>Đang kiểm tra ghi danh...</Button>
-            ) : enrolled ? (
-              <Link to={continueUrl}>
-                <Button>
-                  <Play className="mr-1.5 h-4 w-4" />
-                  {continueUrl.includes('lesson=') ? 'Tiếp tục học' : 'Vào học'}
-                </Button>
-              </Link>
-            ) : (
-              <Button onClick={handleEnroll} disabled={enrollMutation.isPending}>
-                {enrollMutation.isPending ? 'Đang ghi danh...' : 'Ghi danh khóa học'}
-              </Button>
-            )}
-          </div>
+          <section className="mt-6 rounded-xl bg-[#fafafa] p-4 sm:p-5" aria-labelledby="course-description-title">
+            <h2 id="course-description-title" className="text-base font-bold text-[#242424]">
+              Mô tả
+            </h2>
+            <p className="mt-2 max-w-[70ch] whitespace-pre-wrap text-sm leading-6 text-[#5f6670]">
+              {course.description || 'Khóa học chưa có mô tả.'}
+            </p>
+          </section>
 
-          <div>
-            <h2 className="text-lg font-bold text-[#242424]">Chương học</h2>
+          <section className="mt-5" aria-labelledby="course-curriculum-title">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-[#f05123]" />
+                <h2 id="course-curriculum-title" className="text-base font-bold text-[#242424]">
+                  Chương trình học
+                </h2>
+              </div>
+              <span className="rounded-md bg-[#f3f4f6] px-2 py-1 text-[11px] font-semibold tabular-nums text-[#6b7280]">
+                {chapters.length} chương
+              </span>
+            </div>
+
             {chaptersQuery.isLoading ? (
-              <p className="mt-3 text-sm text-[#999]">Đang tải chương...</p>
+              <p className="mt-3 text-sm text-[#7c838d]" aria-live="polite">Đang tải chương...</p>
             ) : chapters.length === 0 ? (
-              <p className="mt-3 text-sm text-[#999]">Chưa có chương nào được thêm.</p>
+              <p className="mt-3 rounded-xl border border-dashed border-[#d9dde3] px-4 py-6 text-sm text-[#7c838d]">
+                Chưa có chương nào được thêm.
+              </p>
             ) : (
-              <ol className="mt-4 space-y-2">
+              <ol className="mt-3 overflow-hidden rounded-xl border border-[#e8e8e8] bg-white divide-y divide-[#ececec]">
                 {chapters.map((chapter, index) => (
-                  <li
-                    key={chapter.id}
-                    className="flex items-center gap-3 rounded-xl border border-[#f0f0f0] bg-[#fafafa] px-4 py-3 text-sm"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#fff4f0] text-xs font-bold text-[#f05123]">
+                  <li key={chapter.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#fff0eb] text-[11px] font-bold tabular-nums text-[#d9481e]">
                       {index + 1}
                     </span>
-                    <span className="font-medium text-[#333]">{chapter.title}</span>
+                    <span className="font-medium text-[#374151]">{chapter.title}</span>
                   </li>
                 ))}
               </ol>
             )}
-          </div>
+          </section>
         </div>
+
+        <aside className="rounded-2xl border border-[#e8e8e8] bg-white p-3 shadow-[0_10px_30px_-24px_rgba(36,36,36,0.35)] lg:sticky lg:top-20">
+          <div className="aspect-video overflow-hidden rounded-xl bg-[#f1f2f4]">
+            {course.thumbnail ? (
+              <img
+                src={course.thumbnail}
+                alt={`Thumbnail khóa học ${course.title}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#f05123] to-[#ff7849] text-sm font-semibold text-white">
+                {course.title}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 py-4">
+            <div className="rounded-lg bg-[#fafafa] px-3 py-2.5">
+              <span className="flex items-center gap-1.5 text-[11px] text-[#7c838d]">
+                <Users className="h-3.5 w-3.5" /> Học viên
+              </span>
+              <strong className="mt-1 block text-sm tabular-nums text-[#242424]">
+                {studentCountQuery.isLoading ? '...' : (studentCountQuery.data ?? 0)}
+              </strong>
+            </div>
+            <div className="rounded-lg bg-[#fafafa] px-3 py-2.5">
+              <span className="flex items-center gap-1.5 text-[11px] text-[#7c838d]">
+                <BookOpen className="h-3.5 w-3.5" /> Chương
+              </span>
+              <strong className="mt-1 block text-sm tabular-nums text-[#242424]">
+                {chapters.length}
+              </strong>
+            </div>
+          </div>
+
+          {!isAuthenticated ? (
+            <Link to="/login" state={{ from: `/courses/${slug}` }} className="block">
+              <Button className="w-full">Đăng nhập để đăng ký</Button>
+            </Link>
+          ) : enrollmentQuery.isLoading ? (
+            <Button className="w-full" disabled>Đang kiểm tra đăng ký...</Button>
+          ) : enrolled ? (
+            <Link to={continueUrl} className="block">
+              <Button className="w-full">
+                <Play className="mr-1.5 h-4 w-4" />
+                {continueUrl.includes('lesson=') ? 'Tiếp tục học' : 'Vào học'}
+              </Button>
+            </Link>
+          ) : (
+            <Button className="w-full" onClick={handleEnroll} disabled={enrollMutation.isPending}>
+              {enrollMutation.isPending ? 'Đang đăng ký...' : 'Đăng ký khóa học'}
+            </Button>
+          )}
+        </aside>
       </div>
 
       {related.length > 0 ? (
-        <section>
-          <h2 className="mb-4 text-xl font-bold text-[#242424]">Khóa học cùng danh mục</h2>
+        <section className="mt-8 border-t border-[#ececec] pt-6">
+          <h2 className="mb-4 text-lg font-bold text-[#242424]">Khóa học cùng danh mục</h2>
           <CourseGrid courses={related} />
         </section>
       ) : null}

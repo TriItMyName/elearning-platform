@@ -29,11 +29,18 @@ function CourseCoverImage({
   course,
   className = 'h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]',
 }: {
-  course: Pick<Course, 'id' | 'thumbnail'>
+  course: Pick<Course, 'id' | 'thumbnail' | 'title'>
   className?: string
 }) {
   if (course.thumbnail) {
-    return <img src={course.thumbnail} alt="" className={className} loading="lazy" />
+    return (
+      <img
+        src={course.thumbnail}
+        alt={`Thumbnail khóa học ${course.title}`}
+        className={className}
+        loading="lazy"
+      />
+    )
   }
 
   return <div className={`h-full w-full bg-gradient-to-br ${courseGradient(course.id)}`} />
@@ -51,18 +58,99 @@ interface CourseItemProps {
   course: Course
   className?: string
   enrolled?: boolean
-  variant?: 'default' | 'tile'
+  progressPercent?: number | null
+  variant?: 'default' | 'tile' | 'compact'
 }
 
 export function CourseItem({
   course,
   className = 'w-full',
   enrolled = false,
+  progressPercent = null,
   variant = 'default',
 }: CourseItemProps) {
   const statusLabel = COURSE_STATUS_LABEL[course.status] ?? `Trạng thái ${course.status}`
   const continueUrl = useContinueLearnUrl(enrolled ? course : null)
   const isTile = variant === 'tile'
+
+  if (variant === 'compact') {
+    const showProgress = enrolled && progressPercent != null
+    const cardUrl = enrolled ? continueUrl : `/courses/${course.slug}`
+
+    return (
+      <Link
+        to={cardUrl}
+        className={`${className} group flex h-[108px] min-w-0 overflow-hidden rounded-xl border border-[#e8e8e8] bg-white transition-colors duration-200 hover:border-[#f05123]/35 hover:bg-[#fffaf8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f05123]/35 focus-visible:ring-offset-2`}
+      >
+        <div className="relative h-full w-[84px] shrink-0 overflow-hidden bg-[#f3f4f6] sm:w-[92px]">
+          <CourseCoverImage
+            course={course}
+            className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.03]"
+          />
+          <span className="absolute left-1.5 top-1.5 rounded-md bg-[#242424]/75 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
+            {statusLabel}
+          </span>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col p-2.5 sm:p-3">
+          <h3 className="line-clamp-1 text-sm font-bold leading-snug text-[#242424] transition-colors duration-200 group-hover:text-[#f05123]">
+            {course.title}
+          </h3>
+
+          {showProgress ? (
+            <div className="mt-1.5">
+              <div className="mb-1 flex items-center justify-between gap-2 text-[10px] sm:text-[11px]">
+                <span className="font-medium text-[#6b7280]">Tiến độ</span>
+                <span className="font-semibold tabular-nums text-[#f05123]">
+                  {Math.round(progressPercent)}%
+                </span>
+              </div>
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-[#fde8df]"
+                role="progressbar"
+                aria-label={`Tiến độ khóa học ${course.title}`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progressPercent)}
+              >
+                <div
+                  className="h-full rounded-full bg-[#f05123] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, Math.round(progressPercent)))}%`,
+                  }}
+                />
+              </div>
+            </div>
+          ) : course.description ? (
+            <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-[#6b7280]">{course.description}</p>
+          ) : null}
+
+          <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+            <span className="inline-flex min-w-0 items-center gap-1 truncate text-[10px] tabular-nums text-[#7c838d] sm:text-[11px]">
+              <Calendar className="h-3 w-3 shrink-0" />
+              {formatDate(course.createdAt)}
+            </span>
+            <span
+              className={
+                enrolled
+                  ? 'inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-[#f05123] px-2 text-[10px] font-semibold text-white sm:h-7 sm:px-2.5 sm:text-[11px]'
+                  : 'inline-flex h-6 shrink-0 items-center rounded-md border border-[#e0e3e7] bg-white px-2 text-[10px] font-semibold text-[#4b5563] sm:h-7 sm:px-2.5 sm:text-[11px]'
+              }
+            >
+              {enrolled ? (
+                <>
+                  <Play className="h-3 w-3" />
+                  Tiếp tục
+                </>
+              ) : (
+                'Chi tiết'
+              )}
+            </span>
+          </div>
+        </div>
+      </Link>
+    )
+  }
 
   return (
     <div
@@ -203,6 +291,26 @@ export function CourseSkeletonGrid() {
           <div className="p-5">
             <div className="h-4 w-3/4 rounded bg-[#ebebeb]" />
             <div className="mt-3 h-3 w-full rounded bg-[#ebebeb]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function CourseCompactSkeletonGrid() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Đang tải khóa học">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex h-[108px] animate-pulse overflow-hidden rounded-xl border border-[#ececec] bg-white"
+        >
+          <div className="h-full w-[84px] shrink-0 bg-[#ececec] sm:w-[92px]" />
+          <div className="flex-1 p-3">
+            <div className="h-3.5 w-2/3 rounded bg-[#ececec]" />
+            <div className="mt-2 h-3 w-full rounded bg-[#f1f1f1]" />
+            <div className="mt-6 h-3 w-20 rounded bg-[#ececec]" />
           </div>
         </div>
       ))}
