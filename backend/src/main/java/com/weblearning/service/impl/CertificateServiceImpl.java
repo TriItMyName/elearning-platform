@@ -9,7 +9,6 @@ import com.weblearning.repository.CertificateRepository;
 import com.weblearning.repository.EnrollmentRepository;
 import com.weblearning.service.CertificateService;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,13 +16,20 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class CertificateServiceImpl implements CertificateService {
 
     private static final float REQUIRED_PROGRESS = 100F;
 
     private final CertificateRepository certificateRepository;
     private final EnrollmentRepository enrollmentRepository;
+
+    public CertificateServiceImpl(
+            CertificateRepository certificateRepository,
+            EnrollmentRepository enrollmentRepository
+    ) {
+        this.certificateRepository = certificateRepository;
+        this.enrollmentRepository = enrollmentRepository;
+    }
 
     @Override
     public CertificateResponse generateForStudent(Long courseId, User student) {
@@ -98,6 +104,7 @@ public class CertificateServiceImpl implements CertificateService {
         if (course != null) {
             response.setCourseId(course.getId());
             response.setCourseTitle(course.getTitle());
+            response.setCourseSlug(course.getSlug());
             if (course.getInstructor() != null) {
                 response.setInstructorId(course.getInstructor().getId());
                 response.setInstructorName(course.getInstructor().getFullName());

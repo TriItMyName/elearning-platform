@@ -13,6 +13,7 @@ public class CertificateResponse {
     private Long id;
     private Long courseId;
     private String courseTitle;
+    private String courseSlug;
     private Long studentId;
     private String studentName;
     private Long instructorId;
