@@ -51,6 +51,7 @@ public class AdminCourseServiceImpl implements AdminCourseService {
                 course.getId(),
                 course.getCategory() != null ? course.getCategory().getId() : null,
                 course.getInstructor() != null ? course.getInstructor().getId() : null,
+                resolveInstructorName(course.getInstructor()),
                 course.getTitle(),
                 course.getSlug(),
                 course.getDescription(),
@@ -58,6 +59,16 @@ public class AdminCourseServiceImpl implements AdminCourseService {
                 course.getAdminStatus(),
                 course.getCreatedAt(),
                 course.getUpdatedAt());
+    }
+
+    private String resolveInstructorName(User instructor) {
+        if (instructor == null) {
+            return null;
+        }
+        if (instructor.getFullName() != null && !instructor.getFullName().isBlank()) {
+            return instructor.getFullName();
+        }
+        return instructor.getUsername();
     }
 
     // Helper to clear cache after mutations

@@ -15,6 +15,7 @@ public class AdminCourseDtoResponse {
     private Long id;
     private Long categoryId;
     private Long instructorId;
+    private String instructorName;
     private String title;
     private String slug;
     private String description;
