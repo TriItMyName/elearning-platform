@@ -43,6 +43,10 @@ export function CourseDetailPage() {
 
   const handleEnroll = () => {
     if (!course) return
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/courses/${slug}` } })
+      return
+    }
     enrollMutation.mutate(course.id, {
       onSuccess: () => {
         notify.success('Đã ghi danh khóa học')
@@ -182,13 +186,9 @@ export function CourseDetailPage() {
             </div>
           </div>
 
-          {!isAuthenticated ? (
-            <Link to="/login" state={{ from: `/courses/${slug}` }} className="block">
-              <Button className="w-full">Đăng nhập để đăng ký</Button>
-            </Link>
-          ) : enrollmentQuery.isLoading ? (
+          {isAuthenticated && enrollmentQuery.isLoading ? (
             <Button className="w-full" disabled>Đang kiểm tra đăng ký...</Button>
-          ) : enrolled ? (
+          ) : isAuthenticated && enrolled ? (
             <Link to={continueUrl} className="block">
               <Button className="w-full">
                 <Play className="mr-1.5 h-4 w-4" />
@@ -196,8 +196,8 @@ export function CourseDetailPage() {
               </Button>
             </Link>
           ) : (
-            <Button className="w-full" onClick={handleEnroll} disabled={enrollMutation.isPending}>
-              {enrollMutation.isPending ? 'Đang đăng ký...' : 'Đăng ký khóa học'}
+            <Button className="w-full" onClick={handleEnroll} disabled={isAuthenticated && enrollMutation.isPending}>
+              {isAuthenticated && enrollMutation.isPending ? 'Đang đăng ký...' : 'Đăng ký khóa học'}
             </Button>
           )}
         </aside>

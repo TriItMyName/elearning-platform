@@ -32,6 +32,19 @@ export function isAuthEndpoint(url = ''): boolean {
   )
 }
 
+/** Read-only catalog APIs — work without login; attach token only if present. */
+export function isPublicCatalogEndpoint(url = ''): boolean {
+  const path = url.split('?')[0] ?? url
+  return (
+    path === '/courses' ||
+    /^\/courses\/\d+$/.test(path) ||
+    /^\/courses\/\d+\/enrollment-count$/.test(path) ||
+    /^\/courses\/\d+\/chapters$/.test(path) ||
+    path === '/categories' ||
+    path.startsWith('/categories/')
+  )
+}
+
 interface RefreshOptions {
   /** Show session-expired toast and redirect. Default true for API retries. */
   notifyOnFailure?: boolean
@@ -105,5 +118,6 @@ export async function ensureValidAccessToken(): Promise<string | null> {
 
 export function shouldRetryWithRefresh(status?: number, url = ''): boolean {
   if (!status || isAuthEndpoint(url)) return false
+  if (isPublicCatalogEndpoint(url) && !tokenService.getRefreshToken()) return false
   return status === 401 || status === 403
 }

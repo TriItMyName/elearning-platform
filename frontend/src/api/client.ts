@@ -3,6 +3,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import {
   ensureValidAccessToken,
   isAuthEndpoint,
+  isPublicCatalogEndpoint,
   refreshAccessToken,
   shouldRetryWithRefresh,
 } from '@/auth/token.refresh'
@@ -30,6 +31,14 @@ apiClient.interceptors.request.use(async (config) => {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
+    }
+    return config
+  }
+
+  if (isPublicCatalogEndpoint(url)) {
+    const token = tokenService.getAccessToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   }
