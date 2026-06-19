@@ -6,6 +6,7 @@ import com.weblearning.dto.enrollment.EnrollmentResponse;
 import com.weblearning.dto.course.CreateCourseRequest;
 import com.weblearning.dto.course.CreateTeacherCourseRequest;
 import com.weblearning.dto.course.StudentLearningProgressResponse;
+import com.weblearning.dto.course.StudentProgressOverviewResponse;
 import com.weblearning.dto.course.UpdateCourseRequest;
 import com.weblearning.dto.course.UpdateTeacherCourseRequest;
 import com.weblearning.dto.notification.CreateNotificationRequest;
@@ -137,6 +138,14 @@ public class CourseController {
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/progress/student/overview")
+    public ResponseEntity<StudentProgressOverviewResponse> getMyProgressOverview(
+            Authentication authentication
+    ) {
+        User student = getCurrentUser(authentication);
+        return ResponseEntity.ok(learningProgressService.getProgressOverviewForStudent(student));
     }
 
     @PostMapping("/{id}/lessons/{lessonId}/progress/student/complete")
@@ -351,4 +360,3 @@ public class CourseController {
         return PageRequest.of(page, size, sort);
     }
 }
-

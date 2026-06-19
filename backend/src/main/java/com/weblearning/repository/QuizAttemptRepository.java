@@ -12,6 +12,7 @@ import java.util.List;
 public interface QuizAttemptRepository extends JpaRepository<QuizAttempt, Long> {
     List<QuizAttempt> findByQuizIdAndDeletedFalseOrderByStartedAtDesc(Long quizId);
 
+    @EntityGraph(attributePaths = { "quiz", "quiz.lesson", "quiz.lesson.chapter", "quiz.lesson.chapter.course" })
     List<QuizAttempt> findByStudentIdAndDeletedFalseOrderByStartedAtDesc(Long studentId);
 
     List<QuizAttempt> findByQuizIdAndStudentIdAndDeletedFalseOrderByStartedAtDesc(Long quizId, Long studentId);
