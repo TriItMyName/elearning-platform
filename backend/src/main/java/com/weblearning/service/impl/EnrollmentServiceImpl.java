@@ -33,6 +33,13 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     @Override
+    public long countStudents(Long courseId) {
+        courseRepository.findByIdAndAdminStatusAndDeletedFalse(courseId, CourseStatus.PUBLISHED)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));
+        return enrollmentRepository.countByCourseIdAndDeletedFalse(courseId);
+    }
+
+    @Override
     public EnrollmentResponse enrollCourseForStudent(Long courseId, User student) {
         Course course = courseRepository.findByIdAndAdminStatusAndDeletedFalse(courseId, CourseStatus.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));

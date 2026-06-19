@@ -86,6 +86,15 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCoursesByInstructor(instructor, pageable));
     }
 
+    @GetMapping("/{id}/enrollment-count")
+    public ResponseEntity<Long> getEnrollmentCount(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(enrollmentService.countStudents(id));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/{id}/enroll")
     public ResponseEntity<EnrollmentResponse> enrollCourse(
             @PathVariable Long id,

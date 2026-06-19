@@ -8,5 +8,7 @@ import java.util.List;
 public interface EnrollmentService {
     List<EnrollmentResponse> getStudentsForInstructor(Long courseId, User instructor);
 
+    long countStudents(Long courseId);
+
     EnrollmentResponse enrollCourseForStudent(Long courseId, User student);
 }
