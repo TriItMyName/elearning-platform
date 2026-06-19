@@ -1,6 +1,10 @@
 spring:
   application:
     name: weblearning
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
   datasource:
     url: jdbc:postgresql://localhost:5432/weblearning_db
     username: postgres
