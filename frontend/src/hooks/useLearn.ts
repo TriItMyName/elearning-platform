@@ -1,7 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 
 import { learnApi } from '@/api/learn.api'
-import type { MarkLessonCompletePayload } from '@/types/learn'
+import { quizStudentApi } from '@/api/quiz-student.api'
+import type { LearnCourse, MarkLessonCompletePayload } from '@/types/learn'
 
 export function useLearnCourse(slug: string, options?: { enabled?: boolean }) {
   return useQuery({
@@ -19,4 +21,36 @@ export function useMarkLessonComplete(slug: string) {
       void queryClient.invalidateQueries({ queryKey: ['learn', slug] })
     },
   })
+}
+
+export function useQuizAttemptedLessonIds(
+  course: LearnCourse | undefined,
+  options?: { enabled?: boolean },
+) {
+  const quizLessons = useMemo(
+    () =>
+      course?.chapters.flatMap((chapter) =>
+        chapter.lessons
+          .filter((lesson) => lesson.hasQuiz)
+          .map((lesson) => ({ ...lesson, chapterId: chapter.id })),
+      ) ?? [],
+    [course],
+  )
+
+  const attemptsQueries = useQueries({
+    queries: quizLessons.map((lesson) => ({
+      queryKey: ['quiz-attempts', course!.id, lesson.chapterId, lesson.id],
+      queryFn: () => quizStudentApi.listAttempts(course!.id, lesson.chapterId, lesson.id),
+      enabled: Boolean(course) && (options?.enabled ?? true),
+    })),
+  })
+
+  return useMemo(() => {
+    const ids = new Set<number>()
+    quizLessons.forEach((lesson, index) => {
+      const attempts = attemptsQueries[index]?.data
+      if (attempts?.length) ids.add(lesson.id)
+    })
+    return ids
+  }, [quizLessons, attemptsQueries])
 }

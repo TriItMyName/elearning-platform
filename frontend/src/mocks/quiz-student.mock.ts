@@ -10,6 +10,7 @@ const QUIZZES: Record<number, StudentQuiz & { _answers: Record<number, number> }
     lessonId: 102,
     timeLimit: 15,
     passScore: 70,
+    createdAt: new Date(0).toISOString(),
     questions: [
       {
         id: 1,
@@ -41,6 +42,7 @@ const QUIZZES: Record<number, StudentQuiz & { _answers: Record<number, number> }
     lessonId: 201,
     timeLimit: 10,
     passScore: 60,
+    createdAt: new Date(0).toISOString(),
     questions: [
       {
         id: 3,
@@ -63,14 +65,14 @@ export const quizStudentMockApi = {
     const raw = QUIZZES[lessonId]
     if (!raw) return Promise.resolve(null)
     const { _answers: _, ...quiz } = raw
+    void _
     return Promise.resolve(structuredClone(quiz))
   },
 
-  submit(payload: SubmitQuizPayload): Promise<SubmitQuizResult> {
-    const raw = QUIZZES[payload.lessonId]
+  submit(lessonId: number, payload: SubmitQuizPayload): Promise<SubmitQuizResult> {
+    const raw = QUIZZES[lessonId]
     if (!raw) throw new Error('Quiz not found')
 
-    let correctCount = 0
     let score = 0
     let maxScore = 0
 
@@ -79,7 +81,6 @@ export const quizStudentMockApi = {
       const correctOptionId = raw._answers[q.id]
       const answer = payload.answers.find((a) => a.questionId === q.id)
       if (answer && answer.optionId === correctOptionId) {
-        correctCount++
         score += q.score
       }
     }
@@ -88,13 +89,16 @@ export const quizStudentMockApi = {
     const passed = percentage >= (raw.passScore ?? 0)
 
     return Promise.resolve({
+      id: Date.now(),
+      courseId: 0,
+      lessonId,
       quizId: raw.id,
-      score,
-      maxScore,
-      percentage,
+      studentId: 0,
+      totalScore: score,
+      passScore: raw.passScore,
       passed,
-      correctCount,
-      totalQuestions: raw.questions.length,
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
     })
   },
 }

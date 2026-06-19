@@ -1,166 +1,87 @@
-import { chaptersApi } from '@/api/chapters.api'
-import { coursesApi } from '@/api/courses.api'
-import { lessonsApi } from '@/api/lessons.api'
 import { apiClient } from '@/api/client'
-import { tokenService } from '@/auth/token.service'
-import { isMockEnabled } from '@/lib/mock-mode'
-import {
-  getCompletedLessonIds,
-  markLessonComplete as markProgressLocal,
-  setLastLessonId,
-} from '@/lib/learn-progress.storage'
-import { isEnrolled } from '@/lib/enrollment.storage'
-import { learnMockApi } from '@/mocks/learn.mock'
+import { coursesApi } from '@/api/courses.api'
 import type { Course } from '@/types/course'
-import type { LearnCourse, LearnChapter, LearnLesson, MarkLessonCompletePayload } from '@/types/learn'
+import type { LearnChapter, LearnCourse, LearnLesson, MarkLessonCompletePayload } from '@/types/learn'
 import type { Lesson } from '@/types/lesson'
+import type { TeacherStudentProgress } from '@/types/teacher'
 
-/** Bài có quiz trong mock — thay bằng API student quiz khi BE sẵn sàng */
-const MOCK_QUIZ_LESSON_IDS = new Set([102, 201])
-
-const liveApi = {
-  getCourseBySlug(slug: string) {
-    return apiClient.get<LearnCourse>(`/learn/courses/${slug}`).then((r) => r.data)
-  },
-
-  markLessonComplete(payload: MarkLessonCompletePayload) {
-    return apiClient
-      .post<{ completedLessonIds: number[] }>('/learn/progress/complete', payload)
-      .then((r) => r.data)
-  },
+interface CourseChapterContent {
+  id: number
+  courseId: number
+  title: string
+  orderIndex: number
+  lessons: Lesson[]
 }
 
-function mapLesson(courseId: number, chapterId: number, lesson: Lesson, completedIds: Set<number>): LearnLesson {
+interface CourseContentResponse {
+  course: Course
+  chapters: CourseChapterContent[]
+}
+
+function toLearnCourse(
+  content: CourseContentResponse,
+  progress: TeacherStudentProgress,
+): LearnCourse {
+  const completedLessonIds = progress.lessons
+    .filter((lesson) => lesson.completed)
+    .map((lesson) => lesson.lessonId)
+  const completed = new Set(completedLessonIds)
+
+  const chapters: LearnChapter[] = content.chapters.map((chapter) => ({
+    id: chapter.id,
+    courseId: chapter.courseId,
+    title: chapter.title,
+    orderIndex: chapter.orderIndex,
+    lessons: chapter.lessons.map(
+      (lesson): LearnLesson => ({
+        ...lesson,
+        courseId: content.course.id,
+        chapterId: chapter.id,
+        completed: completed.has(lesson.id),
+        hasQuiz: Boolean(lesson.quizzes?.length),
+      }),
+    ),
+  }))
+
   return {
-    ...lesson,
-    courseId,
-    chapterId,
-    completed: completedIds.has(lesson.id),
-    hasQuiz: MOCK_QUIZ_LESSON_IDS.has(lesson.id),
-  }
-}
-
-function fallbackLessons(course: Course, chapterId: number, orderIndex: number): LearnLesson[] {
-  const baseId = chapterId * 100 + orderIndex * 10
-  return [
-    {
-      id: baseId + 1,
-      chapterId,
-      courseId: course.id,
-      title: 'Bài học video',
-      lessonType: 0,
-      videoUrl: 'https://www.youtube.com/watch?v=ysz5S6PUM-U',
-      documentUrl: null,
-      duration: 600,
-      content: null,
-      orderIndex: 0,
-      completed: false,
-      hasQuiz: MOCK_QUIZ_LESSON_IDS.has(baseId + 1),
-    },
-    {
-      id: baseId + 2,
-      chapterId,
-      courseId: course.id,
-      title: 'Bài đọc bổ sung',
-      lessonType: 2,
-      videoUrl: null,
-      documentUrl: null,
-      duration: null,
-      content: `Nội dung mẫu cho chương. Khi API bài học học viên sẵn sàng, thay bằng dữ liệu thật từ backend.`,
-      orderIndex: 1,
-      completed: false,
-      hasQuiz: false,
-    },
-  ]
-}
-
-async function buildFromRealApis(course: Course, userId: number): Promise<LearnCourse | null> {
-  const completedIds = new Set(getCompletedLessonIds(userId, course.id))
-
-  try {
-    const chaptersPage = await chaptersApi.listByCourse(course.id, {
-      page: 0,
-      size: 100,
-      sortBy: 'orderIndex',
-    })
-    const rawChapters = chaptersPage.content
-    if (rawChapters.length === 0) return null
-
-    const chapters: LearnChapter[] = []
-
-    for (const chapter of rawChapters) {
-      let lessons: LearnLesson[] = []
-      try {
-        const lessonsPage = await lessonsApi.listByChapter(course.id, chapter.id, {
-          page: 0,
-          size: 100,
-          sortBy: 'orderIndex',
-        })
-        if (lessonsPage.content.length > 0) {
-          lessons = lessonsPage.content.map((l) => mapLesson(course.id, chapter.id, l, completedIds))
-        }
-      } catch {
-        // Học viên chưa có API lesson — dùng placeholder gắn chapter thật
-      }
-
-      if (lessons.length === 0) {
-        lessons = fallbackLessons(course, chapter.id, chapter.orderIndex).map((l) => ({
-          ...l,
-          completed: completedIds.has(l.id),
-        }))
-      }
-
-      chapters.push({
-        id: chapter.id,
-        courseId: course.id,
-        title: chapter.title,
-        orderIndex: chapter.orderIndex,
-        lessons,
-      })
-    }
-
-    return {
-      id: course.id,
-      slug: course.slug,
-      title: course.title,
-      description: course.description,
-      chapters,
-      completedLessonIds: Array.from(completedIds),
-    }
-  } catch {
-    return null
+    id: content.course.id,
+    slug: content.course.slug,
+    title: content.course.title,
+    description: content.course.description,
+    chapters,
+    completedLessonIds,
   }
 }
 
 export const learnApi = {
   async getCourseBySlug(slug: string): Promise<LearnCourse> {
-    const page = await coursesApi.list({ page: 0, size: 100 })
-    const course = page.content.find((c) => c.slug === slug)
+    const page = await coursesApi.list({ page: 0, size: 1000, sortBy: 'id', direction: 'asc' })
+    const course = page.content.find((item) => item.slug === slug)
     if (!course) throw new Error('Course not found')
 
-    if (!isMockEnabled('learn')) {
-      return liveApi.getCourseBySlug(slug)
-    }
+    const [content, progress] = await Promise.all([
+      apiClient
+        .get<CourseContentResponse>(`/courses/${course.id}/content/student`)
+        .then((response) => response.data),
+      apiClient
+        .get<TeacherStudentProgress>(`/courses/${course.id}/progress/student`)
+        .then((response) => response.data),
+    ])
 
-    const user = tokenService.getUser()
-    if (user && !isEnrolled(user.id, course.id)) {
-      throw new Error('Not enrolled')
-    }
-
-    const fromApi = user ? await buildFromRealApis(course, user.id) : null
-    if (fromApi) return fromApi
-
-    return learnMockApi.getCourseBySlug(course, user?.id ?? 0)
+    return toLearnCourse(content, progress)
   },
 
-  markLessonComplete(payload: MarkLessonCompletePayload) {
-    if (isMockEnabled('learn')) {
-      const user = tokenService.getUser()
-      if (!user) throw new Error('Unauthorized')
-      const completedLessonIds = markProgressLocal(user.id, payload.courseId, payload.lessonId)
-      setLastLessonId(user.id, payload.courseId, payload.lessonId)
-      return Promise.resolve({ completedLessonIds })
+  async markLessonComplete(payload: MarkLessonCompletePayload) {
+    const progress = await apiClient
+      .post<TeacherStudentProgress>(
+        `/courses/${payload.courseId}/lessons/${payload.lessonId}/progress/student/complete`,
+      )
+      .then((response) => response.data)
+
+    return {
+      completedLessonIds: progress.lessons
+        .filter((lesson) => lesson.completed)
+        .map((lesson) => lesson.lessonId),
     }
-    return liveApi.markLessonComplete(payload)
   },
 }

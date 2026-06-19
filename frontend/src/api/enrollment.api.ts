@@ -1,45 +1,23 @@
 import { apiClient } from '@/api/client'
-import { isMockEnabled } from '@/lib/mock-mode'
-import {
-  enrollCourse as enrollLocal,
-  getEnrolledCourseIds as getEnrolledLocal,
-  isEnrolled as isEnrolledLocal,
-} from '@/lib/enrollment.storage'
-import { tokenService } from '@/auth/token.service'
-
-const liveApi = {
-  listMine() {
-    return apiClient.get<number[]>('/courses/enrolled').then((r) => r.data)
-  },
-
-  enroll(courseId: number) {
-    return apiClient.post<{ courseId: number }>(`/courses/${courseId}/enroll`).then((r) => r.data)
-  },
-
-  isEnrolled(courseId: number) {
-    return apiClient.get<{ enrolled: boolean }>(`/courses/${courseId}/enrollment-status`).then((r) => r.data.enrolled)
-  },
-}
-
-function userId() {
-  const user = tokenService.getUser()
-  if (!user) throw new Error('Unauthorized')
-  return user.id
-}
+import type { PageResponse } from '@/types/api'
+import type { Course } from '@/types/course'
+import type { TeacherEnrollment } from '@/types/teacher'
 
 export const enrollmentApi = {
-  getEnrolledCourseIds(): Promise<number[]> {
-    if (isMockEnabled('learn')) return Promise.resolve(getEnrolledLocal(userId()))
-    return liveApi.listMine()
+  async getEnrolledCourseIds(): Promise<number[]> {
+    const { data } = await apiClient.get<PageResponse<Course>>('/courses', {
+      params: { page: 0, size: 1000, sortBy: 'id', direction: 'asc' },
+    })
+    return data.content.filter((course) => course.enrolled === true).map((course) => course.id)
   },
 
   isEnrolled(courseId: number): Promise<boolean> {
-    if (isMockEnabled('learn')) return Promise.resolve(isEnrolledLocal(userId(), courseId))
-    return liveApi.isEnrolled(courseId)
+    return enrollmentApi.getEnrolledCourseIds().then((ids) => ids.includes(courseId))
   },
 
   enroll(courseId: number): Promise<number[]> {
-    if (isMockEnabled('learn')) return Promise.resolve(enrollLocal(userId(), courseId))
-    return liveApi.enroll(courseId).then(() => liveApi.listMine())
+    return apiClient
+      .post<TeacherEnrollment>(`/courses/${courseId}/enroll`)
+      .then(() => enrollmentApi.getEnrolledCourseIds())
   },
 }

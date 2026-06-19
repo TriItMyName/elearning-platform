@@ -1,16 +1,21 @@
-import { CheckCircle2, Circle, FileText, HelpCircle, PlayCircle } from 'lucide-react'
+import { CheckCircle2, Circle, HelpCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import type { LearnChapter, LearnLesson } from '@/types/learn'
-import { LESSON_TYPE_LABEL } from '@/types/lesson'
 
 interface LearnSidebarProps {
   chapters: LearnChapter[]
   activeLessonId: number | null
+  quizAttemptedLessonIds: Set<number>
   onSelectLesson: (lesson: LearnLesson) => void
 }
 
-export function LearnSidebar({ chapters, activeLessonId, onSelectLesson }: LearnSidebarProps) {
+export function LearnSidebar({
+  chapters,
+  activeLessonId,
+  quizAttemptedLessonIds,
+  onSelectLesson,
+}: LearnSidebarProps) {
   return (
     <aside className="space-y-4">
       {chapters.map((chapter) => (
@@ -21,8 +26,7 @@ export function LearnSidebar({ chapters, activeLessonId, onSelectLesson }: Learn
           <ul className="mt-2 space-y-1">
             {chapter.lessons.map((lesson) => {
               const active = lesson.id === activeLessonId
-              const Icon =
-                lesson.hasQuiz ? HelpCircle : lesson.lessonType === 0 ? PlayCircle : FileText
+              const quizAttempted = quizAttemptedLessonIds.has(lesson.id)
 
               return (
                 <li key={lesson.id}>
@@ -41,10 +45,16 @@ export function LearnSidebar({ chapters, activeLessonId, onSelectLesson }: Learn
                     )}
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium leading-snug">{lesson.title}</span>
-                      <span className="mt-0.5 flex items-center gap-1 text-[11px] opacity-70">
-                        <Icon className="h-3 w-3" />
-                        {lesson.hasQuiz ? 'Quiz' : LESSON_TYPE_LABEL[lesson.lessonType]}
-                      </span>
+                      {lesson.hasQuiz ? (
+                        <span className="mt-1 flex items-center gap-1 text-[11px] opacity-70">
+                          {quizAttempted ? (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <HelpCircle className="h-3 w-3" />
+                          )}
+                          Quiz
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                 </li>

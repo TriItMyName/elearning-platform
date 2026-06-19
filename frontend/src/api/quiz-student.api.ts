@@ -1,32 +1,58 @@
 import { apiClient } from '@/api/client'
-import { isMockEnabled } from '@/lib/mock-mode'
-import { quizStudentMockApi } from '@/mocks/quiz-student.mock'
-import type { StudentQuiz, SubmitQuizPayload, SubmitQuizResult } from '@/types/quiz-student'
+import type {
+  QuizAttempt,
+  StudentQuestion,
+  StudentQuiz,
+  SubmitQuizPayload,
+  SubmitQuizResult,
+} from '@/types/quiz-student'
+
+function basePath(courseId: number, chapterId: number, lessonId: number) {
+  return `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/quizzes/student`
+}
 
 const liveApi = {
-  getByLesson(courseId: number, chapterId: number, lessonId: number) {
+  async getByLesson(courseId: number, chapterId: number, lessonId: number) {
+    const path = basePath(courseId, chapterId, lessonId)
+    const { data: quizzes } = await apiClient.get<Omit<StudentQuiz, 'questions'>[]>(path)
+    const quiz = quizzes[0]
+    if (!quiz) return null
+    const { data: questions } = await apiClient.get<StudentQuestion[]>(
+      `${path}/${quiz.id}/questions`,
+    )
+    return { ...quiz, questions } satisfies StudentQuiz
+  },
+
+  submit(
+    courseId: number,
+    chapterId: number,
+    lessonId: number,
+    quizId: number,
+    payload: SubmitQuizPayload,
+  ) {
     return apiClient
-      .get<StudentQuiz>(
-        `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/quizzes/student`,
+      .post<SubmitQuizResult>(
+        `${basePath(courseId, chapterId, lessonId)}/${quizId}/submit`,
+        payload,
       )
       .then((r) => r.data)
   },
 
-  submit(courseId: number, chapterId: number, lessonId: number, payload: SubmitQuizPayload) {
+  listAttempts(courseId: number, chapterId: number, lessonId: number) {
     return apiClient
-      .post<SubmitQuizResult>(
-        `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/quizzes/student/submit`,
-        payload,
-      )
-      .then((r) => r.data)
+      .get<QuizAttempt[]>(`${basePath(courseId, chapterId, lessonId)}/attempts`)
+      .then((response) => response.data)
+  },
+
+  listAttemptsByQuiz(courseId: number, chapterId: number, lessonId: number, quizId: number) {
+    return apiClient
+      .get<QuizAttempt[]>(`${basePath(courseId, chapterId, lessonId)}/${quizId}/attempts`)
+      .then((response) => response.data)
   },
 }
 
 export const quizStudentApi = {
   getByLesson(courseId: number, chapterId: number, lessonId: number) {
-    if (isMockEnabled('quizStudent')) {
-      return quizStudentMockApi.getByLesson(lessonId)
-    }
     return liveApi.getByLesson(courseId, chapterId, lessonId)
   },
 
@@ -34,9 +60,12 @@ export const quizStudentApi = {
     courseId: number,
     chapterId: number,
     lessonId: number,
+    quizId: number,
     payload: SubmitQuizPayload,
   ) {
-    if (isMockEnabled('quizStudent')) return quizStudentMockApi.submit(payload)
-    return liveApi.submit(courseId, chapterId, lessonId, payload)
+    return liveApi.submit(courseId, chapterId, lessonId, quizId, payload)
   },
+
+  listAttempts: liveApi.listAttempts,
+  listAttemptsByQuiz: liveApi.listAttemptsByQuiz,
 }

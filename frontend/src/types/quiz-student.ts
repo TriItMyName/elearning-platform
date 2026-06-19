@@ -15,7 +15,8 @@ export interface StudentQuiz {
   id: number
   lessonId: number
   timeLimit: number | null
-  passScore: number | null
+  passScore: number
+  createdAt: string
   questions: StudentQuestion[]
 }
 
@@ -25,18 +26,20 @@ export interface QuizAnswerPayload {
 }
 
 export interface SubmitQuizPayload {
-  quizId: number
-  lessonId: number
-  courseId: number
   answers: QuizAnswerPayload[]
 }
 
 export interface SubmitQuizResult {
+  id: number
+  courseId: number
+  lessonId: number
   quizId: number
-  score: number
-  maxScore: number
-  percentage: number
+  studentId: number
+  totalScore: number
+  passScore: number
   passed: boolean
-  correctCount: number
-  totalQuestions: number
+  startedAt: string
+  completedAt: string
 }
+
+export type QuizAttempt = SubmitQuizResult

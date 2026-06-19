@@ -1,5 +1,5 @@
-import { useMutation } from '@tanstack/react-query'
-import { CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { CheckCircle2, ChevronRight, Clock, XCircle } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { quizStudentApi } from '@/api/quiz-student.api'
@@ -15,9 +15,19 @@ interface QuizPlayerProps {
   lessonId: number
   quiz: StudentQuiz
   onComplete?: (result: SubmitQuizResult) => void
+  onDraftChange?: (hasAnswers: boolean) => void
+  onNextLesson?: () => void
 }
 
-export function QuizPlayer({ courseId, chapterId, lessonId, quiz, onComplete }: QuizPlayerProps) {
+export function QuizPlayer({
+  courseId,
+  chapterId,
+  lessonId,
+  quiz,
+  onComplete,
+  onDraftChange,
+  onNextLesson,
+}: QuizPlayerProps) {
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [result, setResult] = useState<SubmitQuizResult | null>(null)
 
@@ -25,13 +35,15 @@ export function QuizPlayer({ courseId, chapterId, lessonId, quiz, onComplete }: 
     () => quiz.questions.every((q) => answers[q.id] != null),
     [quiz.questions, answers],
   )
+  const attemptsQuery = useQuery({
+    queryKey: ['quiz-attempts', courseId, chapterId, lessonId, quiz.id],
+    queryFn: () =>
+      quizStudentApi.listAttemptsByQuiz(courseId, chapterId, lessonId, quiz.id),
+  })
 
   const submitMutation = useMutation({
     mutationFn: () =>
-      quizStudentApi.submit(courseId, chapterId, lessonId, {
-        quizId: quiz.id,
-        lessonId,
-        courseId,
+      quizStudentApi.submit(courseId, chapterId, lessonId, quiz.id, {
         answers: Object.entries(answers).map(([questionId, optionId]) => ({
           questionId: Number(questionId),
           optionId,
@@ -39,6 +51,8 @@ export function QuizPlayer({ courseId, chapterId, lessonId, quiz, onComplete }: 
       }),
     onSuccess: (data) => {
       setResult(data)
+      onDraftChange?.(false)
+      void attemptsQuery.refetch()
       onComplete?.(data)
       notify.success(data.passed ? 'Chúc mừng! Bạn đã đạt quiz.' : 'Đã nộp bài. Hãy ôn lại và thử lại.')
     },
@@ -54,14 +68,31 @@ export function QuizPlayer({ courseId, chapterId, lessonId, quiz, onComplete }: 
           <XCircle className="mx-auto h-14 w-14 text-amber-500" />
         )}
         <h2 className="mt-4 text-xl font-bold text-[#111827]">
-          {result.passed ? 'Đạt quiz!' : 'Chưa đạt yêu cầu'}
+          {result.passed ? 'Chúc mừng!' : 'Chưa đạt yêu cầu'}
         </h2>
+        {result.passed ? (
+          <p className="mt-1 font-medium text-emerald-600">Bạn đã đạt yêu cầu của bài quiz.</p>
+        ) : null}
         <p className="mt-2 text-[#6b7280]">
-          {result.correctCount}/{result.totalQuestions} câu đúng · {result.percentage}% · {result.score}/{result.maxScore} điểm
+          Điểm của bạn: {result.totalScore}. Điểm đạt: {result.passScore}.
         </p>
-        <Button className="mt-6" variant="secondary" onClick={() => { setResult(null); setAnswers({}) }}>
-          Làm lại
-        </Button>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setResult(null)
+              setAnswers({})
+              onDraftChange?.(false)
+            }}
+          >
+            Làm lại
+          </Button>
+          {result.passed && onNextLesson ? (
+            <Button onClick={onNextLesson}>
+              Bài tiếp theo <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
       </div>
     )
   }
@@ -76,6 +107,9 @@ export function QuizPlayer({ courseId, chapterId, lessonId, quiz, onComplete }: 
         ) : null}
         <span>Điểm đạt: {quiz.passScore ?? 0}%</span>
         <span>{quiz.questions.length} câu hỏi</span>
+        {attemptsQuery.data?.length ? (
+          <span>Đã làm {attemptsQuery.data.length} lần</span>
+        ) : null}
       </div>
 
       {quiz.questions.map((q, index) => (
@@ -97,7 +131,10 @@ export function QuizPlayer({ courseId, chapterId, lessonId, quiz, onComplete }: 
                   type="radio"
                   name={`q-${q.id}`}
                   checked={answers[q.id] === opt.id}
-                  onChange={() => setAnswers({ ...answers, [q.id]: opt.id })}
+                  onChange={() => {
+                    setAnswers({ ...answers, [q.id]: opt.id })
+                    onDraftChange?.(true)
+                  }}
                   className="text-[#f05123]"
                 />
                 {opt.content}
