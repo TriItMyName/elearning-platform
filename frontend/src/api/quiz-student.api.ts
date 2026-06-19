@@ -41,7 +41,11 @@ const liveApi = {
   listAttempts(courseId: number, chapterId: number, lessonId: number) {
     return apiClient
       .get<QuizAttempt[]>(`${basePath(courseId, chapterId, lessonId)}/attempts`)
-      .then((response) => response.data)
+      .then((response) =>
+        response.data.filter(
+          (attempt) => attempt.courseId === courseId && attempt.lessonId === lessonId,
+        ),
+      )
   },
 
   listAttemptsByQuiz(courseId: number, chapterId: number, lessonId: number, quizId: number) {

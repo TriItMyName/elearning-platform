@@ -105,7 +105,7 @@ export function QuizPlayer({
             <Clock className="h-4 w-4" /> {quiz.timeLimit} phút
           </span>
         ) : null}
-        <span>Điểm đạt: {quiz.passScore ?? 0}%</span>
+        <span>Điểm đạt: {quiz.passScore ?? 0}</span>
         <span>{quiz.questions.length} câu hỏi</span>
         {attemptsQuery.data?.length ? (
           <span>Đã làm {attemptsQuery.data.length} lần</span>
