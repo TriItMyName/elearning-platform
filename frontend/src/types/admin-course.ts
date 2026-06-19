@@ -10,6 +10,7 @@ export interface AdminCourse {
   id: number
   categoryId: number
   instructorId: number
+  instructorName: string | null
   title: string
   slug: string
   description: string | null

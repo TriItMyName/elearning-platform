@@ -221,43 +221,19 @@ export function DashboardEnrollmentChart({ data, ready = true }: DashboardEnroll
             strokeLinejoin="round"
           />
 
-          {points.map((point, i) => {
-            const completionY = PAD.top + innerH - (point.completions / max) * innerH
-            const active = hoveredIndex === i
-
-            return (
-              <g key={point.label + i}>
-                <rect
-                  x={point.x - (W - PAD.left - PAD.right) / Math.max(points.length - 1, 1) / 2}
-                  y={PAD.top}
-                  width={(W - PAD.left - PAD.right) / Math.max(points.length - 1, 1)}
-                  height={innerH}
-                  fill="transparent"
-                  className="cursor-pointer"
-                  onMouseEnter={() => setHoveredIndex(i)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                />
-                <circle
-                  cx={point.x}
-                  cy={completionY}
-                  r={active ? 5 : 3.5}
-                  fill="white"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  className={cn('transition-all duration-150', active ? 'opacity-100' : 'opacity-0')}
-                />
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={active ? 6 : 4}
-                  fill="white"
-                  stroke="#f05123"
-                  strokeWidth={2.5}
-                  className={cn('transition-all duration-150', active ? 'opacity-100' : 'opacity-70')}
-                />
-              </g>
-            )
-          })}
+          {points.map((point, i) => (
+            <rect
+              key={point.label + i}
+              x={point.x - (W - PAD.left - PAD.right) / Math.max(points.length - 1, 1) / 2}
+              y={PAD.top}
+              width={(W - PAD.left - PAD.right) / Math.max(points.length - 1, 1)}
+              height={innerH}
+              fill="transparent"
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            />
+          ))}
 
           {points.map((point, i) => (
             <text

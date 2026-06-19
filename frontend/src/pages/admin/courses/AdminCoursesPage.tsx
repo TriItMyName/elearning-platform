@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, Pencil, Plus, RotateCcw, Search, Trash2, XCircle } from 'lucide-react'
+import { CheckCircle2, Pencil, Plus, RotateCcw, Search, XCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -46,7 +46,7 @@ function formatDateTime(value: string) {
   })
 }
 
-function CourseStatusBadge({ status }: { status: AdminCourseStatus }) {
+export function CourseStatusBadge({ status }: { status: AdminCourseStatus }) {
   const styles: Record<AdminCourseStatus, string> = {
     DRAFT: 'bg-[#f3f4f6] text-[#4b5563]',
     PUBLISHED: 'bg-[#ecfdf5] text-[#047857]',
@@ -147,6 +147,7 @@ export function AdminCoursesPage() {
         item.title.toLowerCase().includes(q) ||
         item.slug.toLowerCase().includes(q) ||
         categoryName.includes(q) ||
+        (item.instructorName?.toLowerCase().includes(q) ?? false) ||
         String(item.instructorId).includes(q)
       )
     })
@@ -186,16 +187,6 @@ export function AdminCoursesPage() {
     void refreshPendingCourses()
     void refreshRejectedCourses()
   }, [])
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => adminApi.courses.delete(id),
-    onSuccess: async () => {
-      notify.success('Đã chuyển khóa học vào thùng rác')
-      await refreshActiveCourses()
-      await refreshDeletedCourses()
-    },
-    onError: (e) => notify.error(getErrorMessage(e)),
-  })
 
   const restoreMutation = useMutation({
     mutationFn: (id: number) => adminApi.courses.restore(id),
@@ -328,15 +319,18 @@ export function AdminCoursesPage() {
                 <AdminTh>Giảng viên</AdminTh>
                 {tab !== 'deleted' ? <AdminTh>Trạng thái</AdminTh> : null}
                 <AdminTh>Cập nhật</AdminTh>
-                <AdminTh align="right">Thao tác</AdminTh>
+                {tab !== 'active' ? <AdminTh align="right">Thao tác</AdminTh> : null}
               </tr>
             </AdminTableHead>
             <AdminTableBody>
               {isLoading ? (
-                <AdminEmptyRow colSpan={tab === 'deleted' ? 6 : 7} message="Đang tải..." />
+                <AdminEmptyRow
+                  colSpan={tab === 'active' || tab === 'deleted' ? 6 : 7}
+                  message="Đang tải..."
+                />
               ) : items.length === 0 ? (
                 <AdminEmptyRow
-                  colSpan={tab === 'deleted' ? 6 : 7}
+                  colSpan={tab === 'active' || tab === 'deleted' ? 6 : 7}
                   message={
                     tab === 'active'
                       ? keyword || statusFilter || categoryFilter
@@ -371,7 +365,7 @@ export function AdminCoursesPage() {
                       {categoryMap.get(item.categoryId) ?? `#${item.categoryId}`}
                     </AdminTd>
                     <AdminTd className="text-[#6b7280]">
-                      #{item.instructorId}
+                      {item.instructorName ?? `#${item.instructorId}`}
                     </AdminTd>
                     {tab !== 'deleted' ? (
                       <AdminTd>
@@ -381,9 +375,10 @@ export function AdminCoursesPage() {
                     <AdminTd className="whitespace-nowrap text-xs text-[#9ca3af]">
                       {formatDateTime(item.updatedAt)}
                     </AdminTd>
-                    <AdminTd align="right">
-                      <div className="flex justify-end gap-0.5">
-                        {tab === 'deleted' ? (
+                    {tab !== 'active' ? (
+                      <AdminTd align="right">
+                        <div className="flex justify-end gap-0.5">
+                          {tab === 'deleted' ? (
                           <AdminIconButton
                             title="Khôi phục"
                             onClick={async (event) => {
@@ -398,7 +393,7 @@ export function AdminCoursesPage() {
                           >
                             <RotateCcw className="h-4 w-4" />
                           </AdminIconButton>
-                        ) : tab === 'pending' ? (
+                          ) : tab === 'pending' ? (
                           <>
                             <AdminIconButton
                               title="Duyệt"
@@ -429,7 +424,7 @@ export function AdminCoursesPage() {
                               <Pencil className="h-4 w-4" />
                             </AdminIconButton>
                           </>
-                        ) : tab === 'rejected' ? (
+                          ) : tab === 'rejected' ? (
                           <>
                             <AdminIconButton
                               title="Duyệt lại"
@@ -450,59 +445,10 @@ export function AdminCoursesPage() {
                               <Pencil className="h-4 w-4" />
                             </AdminIconButton>
                           </>
-                        ) : (
-                          <>
-                            {item.adminStatus === 'PENDING' ? (
-                              <AdminIconButton
-                                title="Duyệt"
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  approveMutation.mutate(item.id)
-                                }}
-                              >
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                              </AdminIconButton>
-                            ) : null}
-                            {item.adminStatus === 'PENDING' ? (
-                              <AdminIconButton
-                                title="Từ chối"
-                                variant="danger"
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  rejectMutation.mutate(item.id)
-                                }}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </AdminIconButton>
-                            ) : null}
-                            <AdminIconButton
-                              title="Sửa"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                setEditItem(item)
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </AdminIconButton>
-                            <AdminIconButton
-                              title="Xóa"
-                              variant="danger"
-                              onClick={async (event) => {
-                                event.stopPropagation()
-                                const ok = await confirm({
-                                  title: 'Chuyển vào thùng rác',
-                                  description: `Khóa học "${item.title}" sẽ được ẩn khỏi danh sách hoạt động.`,
-                                  confirmLabel: 'Chuyển vào thùng rác',
-                                })
-                                if (ok) deleteMutation.mutate(item.id)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </AdminIconButton>
-                          </>
-                        )}
-                      </div>
-                    </AdminTd>
+                          ) : null}
+                        </div>
+                      </AdminTd>
+                    ) : null}
                   </AdminTr>
                 ))
               )}
@@ -533,7 +479,7 @@ export function AdminCoursesPage() {
   )
 }
 
-function CourseFormModal({
+export function CourseFormModal({
   open,
   title,
   onClose,
