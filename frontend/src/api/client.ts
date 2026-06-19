@@ -16,6 +16,14 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
   const url = config.url ?? ''
 
+  if (config.data instanceof FormData && config.headers) {
+    if (typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type')
+    } else {
+      delete config.headers['Content-Type']
+    }
+  }
+
   if (isAuthEndpoint(url)) {
     if (url.includes('/auth/logout')) {
       const token = tokenService.getAccessToken()

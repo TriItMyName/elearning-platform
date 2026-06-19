@@ -50,3 +50,9 @@ export function isAccessDeniedError(error: unknown): boolean {
     (error.response?.status === 401 || error.response?.status === 403)
   )
 }
+
+export function isAbortError(error: unknown): boolean {
+  if (error instanceof AxiosError && error.code === 'ERR_CANCELED') return true
+  if (error instanceof DOMException && error.name === 'AbortError') return true
+  return false
+}
