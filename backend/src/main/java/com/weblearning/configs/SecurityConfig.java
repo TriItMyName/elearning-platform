@@ -3,6 +3,7 @@ package com.weblearning.configs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -61,8 +62,17 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html")
-                        .permitAll() // mở Swagger và các API Auth public
-                        .anyRequest().authenticated() // còn lại vẫn cần login
+                        .permitAll()
+                        // Public discovery: home, courses list, course detail preview
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/courses",
+                                "/api/courses/{id:\\d+}",
+                                "/api/courses/{id:\\d+}/enrollment-count",
+                                "/api/courses/{courseId:\\d+}/chapters")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**")
+                        .permitAll()
+                        .anyRequest().authenticated()
                 );
 
         if (jwtUtils != null && userDetailsService != null) {
