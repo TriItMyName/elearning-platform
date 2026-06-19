@@ -39,9 +39,9 @@ public class AdminLessonServiceImpl implements AdminLessonService {
     private final ChapterRepository chapterRepository;
     private final CloudinaryUploadService cloudinaryUploadService;
 
-    public static final int TYPE_VIDEO = 1;
-    public static final int TYPE_DOCUMENT = 2;
-    public static final int TYPE_TEXT = 3;
+    public static final int TYPE_VIDEO = 0;
+    public static final int TYPE_DOCUMENT = 1;
+    public static final int TYPE_TEXT = 2;
 
     // Cache variables
     private List<AdminLessonDtoResponse> cachedLessons = null;
@@ -368,7 +368,7 @@ public class AdminLessonServiceImpl implements AdminLessonService {
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + id));
 
         if (lesson.getLessonType() != TYPE_VIDEO) {
-            throw new IllegalArgumentException("Cannot upload video: Lesson type must be Video (1)");
+            throw new IllegalArgumentException("Cannot upload video: Lesson type must be Video (0)");
         }
 
         String videoUrl = cloudinaryUploadService.uploadVideo(file, id);
@@ -387,7 +387,7 @@ public class AdminLessonServiceImpl implements AdminLessonService {
                 .orElseThrow(() -> new ResourceNotFoundException("Lesson not found with id: " + id));
 
         if (lesson.getLessonType() != TYPE_DOCUMENT) {
-            throw new IllegalArgumentException("Cannot upload document: Lesson type must be Document (2)");
+            throw new IllegalArgumentException("Cannot upload document: Lesson type must be Document (1)");
         }
 
         String documentUrl = cloudinaryUploadService.uploadDocument(file, id);

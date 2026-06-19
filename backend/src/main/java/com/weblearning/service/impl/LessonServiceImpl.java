@@ -135,8 +135,25 @@ public class LessonServiceImpl implements LessonService {
     public LessonResponse uploadVideoForInstructor(Long courseId, Long chapterId, Long lessonId, MultipartFile file, User instructor) {
         getOwnedChapter(courseId, chapterId, instructor);
         Lesson lesson = getLessonInChapter(chapterId, lessonId);
+        if (lesson.getLessonType() != null && lesson.getLessonType() != 0) {
+            throw new IllegalArgumentException("Cannot upload video: Lesson type must be Video (0)");
+        }
         String videoUrl = cloudinaryUploadService.uploadVideo(file, lessonId);
         lesson.setVideoUrl(videoUrl);
+        lesson.setDocumentUrl(null);
+        return toLessonResponse(lessonRepository.save(lesson));
+    }
+
+    @Override
+    public LessonResponse uploadDocumentForInstructor(Long courseId, Long chapterId, Long lessonId, MultipartFile file, User instructor) {
+        getOwnedChapter(courseId, chapterId, instructor);
+        Lesson lesson = getLessonInChapter(chapterId, lessonId);
+        if (lesson.getLessonType() == null || lesson.getLessonType() != 1) {
+            throw new IllegalArgumentException("Cannot upload document: Lesson type must be Document (1)");
+        }
+        String documentUrl = cloudinaryUploadService.uploadDocument(file, lessonId);
+        lesson.setDocumentUrl(documentUrl);
+        lesson.setVideoUrl(null);
         return toLessonResponse(lessonRepository.save(lesson));
     }
 
