@@ -5,11 +5,12 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/auth.context'
 import { ContentContainer } from '@/components/site/ContentContainer'
 import { AppLogo } from '@/components/site/Logo'
+import { NotificationCenter } from '@/components/site/NotificationCenter'
 import { useSearchCourses } from '@/hooks/useCourses'
 import { getUserInitials } from '@/lib/user'
 
 export function Header() {
-  const { user, isAuthenticated, canAccessAdmin, logout } = useAuth()
+  const { user, isAuthenticated, managementPath, logout } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -81,7 +82,9 @@ export function Header() {
 
         <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           {isAuthenticated ? (
-            <div ref={userMenuRef} className="relative">
+            <>
+              <NotificationCenter />
+              <div ref={userMenuRef} className="relative">
               <button
                 type="button"
                 className="flex items-center gap-2"
@@ -106,9 +109,9 @@ export function Header() {
                     >
                       Tài khoản
                     </Link>
-                    {canAccessAdmin ? (
+                    {managementPath ? (
                       <Link
-                        to="/admin"
+                        to={managementPath}
                         className="block px-4 py-2 text-sm text-[#666] hover:bg-[#f8f8f8]"
                         onClick={() => setUserMenuOpen(false)}
                       >
@@ -135,7 +138,8 @@ export function Header() {
                   </div>
                 </div>
               ) : null}
-            </div>
+              </div>
+            </>
           ) : (
             <>
               <Link

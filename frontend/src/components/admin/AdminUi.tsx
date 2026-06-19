@@ -10,14 +10,20 @@ interface AdminPageHeaderProps {
   title: string
   description?: string
   action?: ReactNode
+  eyebrow?: string
 }
 
-export function AdminPageHeader({ title, description, action }: AdminPageHeaderProps) {
+export function AdminPageHeader({
+  title,
+  description,
+  action,
+  eyebrow = 'Quản trị',
+}: AdminPageHeaderProps) {
   return (
     <div className="mb-8 flex flex-col gap-4 border-b border-[#ececec] pb-6 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
         <p className="text-[11px] font-semibold tracking-[0.14em] text-[#f05123] uppercase">
-          Quản trị
+          {eyebrow}
         </p>
         <h1 className="mt-1 text-[1.75rem] font-bold leading-tight tracking-tight text-[#1a1a1a]">
           {title}
@@ -96,9 +102,20 @@ export function AdminTableBody({ children }: { children: ReactNode }) {
   return <tbody className="divide-y divide-[#f3f4f6]">{children}</tbody>
 }
 
-export function AdminTr({ children, className }: { children: ReactNode; className?: string }) {
+export function AdminTr({
+  children,
+  className,
+  onClick,
+}: {
+  children: ReactNode
+  className?: string
+  onClick?: () => void
+}) {
   return (
-    <tr className={cn('transition-colors hover:bg-[#fafafa]/80', className)}>
+    <tr
+      onClick={onClick}
+      className={cn('transition-colors hover:bg-[#fafafa]/80', onClick && 'cursor-pointer', className)}
+    >
       {children}
     </tr>
   )

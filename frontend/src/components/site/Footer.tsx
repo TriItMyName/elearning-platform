@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { AppLogo } from '@/components/site/Logo'
 
@@ -22,7 +22,7 @@ export function Footer() {
               </strong>
             </Link>
             <p className="mt-4 max-w-md text-[14px] leading-[1.7]">
-              Nền tảng e-learning quản lý khóa học, chương, bài học, quiz và bài tập trực tuyến.
+              Nền tảng e-learning quản lý khóa học, chương, bài học và quiz trực tuyến.
             </p>
           </div>
 

@@ -4,6 +4,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AdminGuard } from '@/components/admin/AdminGuard'
 
+import { AdminCourseLayout } from '@/components/admin/AdminCourseLayout'
+
 import { AdminLayout } from '@/components/admin/AdminLayout'
 
 import { MainLayout } from '@/components/layout/MainLayout'
@@ -14,6 +16,10 @@ import { LearnGuard } from '@/components/learn/LearnGuard'
 
 import { LearnLayout } from '@/components/learn/LearnLayout'
 
+import { TeacherGuard } from '@/components/teacher/TeacherGuard'
+
+import { TeacherLayout } from '@/components/teacher/TeacherLayout'
+
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 
 import { AdminCategoriesPage } from '@/pages/admin/categories/AdminCategoriesPage'
@@ -23,10 +29,6 @@ import { AdminCoursesPage } from '@/pages/admin/courses/AdminCoursesPage'
 import { AdminLessonsPage } from '@/pages/admin/lessons/AdminLessonsPage'
 
 import { AdminQuizzesPage } from '@/pages/admin/quizzes/AdminQuizzesPage'
-
-import { AdminAssignmentsPage } from '@/pages/admin/assignments/AdminAssignmentsPage'
-
-import { AdminReportsPage } from '@/pages/admin/reports/AdminReportsPage'
 
 import { AdminRolesPage } from '@/pages/admin/roles/AdminRolesPage'
 
@@ -51,6 +53,8 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
 import { SettingsPage } from '@/pages/settings/SettingsPage'
+
+import { TeacherWorkspacePage } from '@/pages/teacher/TeacherWorkspacePage'
 
 
 
@@ -132,15 +136,40 @@ export const router = createBrowserRouter([
 
           { path: 'admin/courses', element: <AdminCoursesPage /> },
 
-          { path: 'admin/lessons', element: <AdminLessonsPage /> },
+          {
+            path: 'admin/courses/:courseId',
+            element: <AdminCourseLayout />,
+            children: [
+              { index: true, element: <Navigate to="lessons" replace /> },
+              { path: 'lessons', element: <AdminLessonsPage /> },
+              { path: 'quizzes', element: <AdminQuizzesPage /> },
+            ],
+          },
 
-          { path: 'admin/quizzes', element: <AdminQuizzesPage /> },
+          { path: 'admin/lessons', element: <Navigate to="/admin/courses" replace /> },
+          { path: 'admin/quizzes', element: <Navigate to="/admin/courses" replace /> },
 
-          { path: 'admin/assignments', element: <AdminAssignmentsPage /> },
-
-          { path: 'admin/reports', element: <AdminReportsPage /> },
+          { path: 'admin/reports', element: <Navigate to="/admin" replace /> },
 
         ],
+
+      },
+
+    ],
+
+  },
+
+  {
+
+    element: <TeacherGuard />,
+
+    children: [
+
+      {
+
+        element: <TeacherLayout />,
+
+        children: [{ path: 'teacher', element: <TeacherWorkspacePage /> }],
 
       },
 

@@ -23,10 +23,16 @@ export interface Question {
 
 export interface CreateQuizPayload {
   timeLimit?: number
-  passScore?: number
+  passScore: number
 }
 
 export interface UpdateQuizPayload extends CreateQuizPayload {}
+
+export interface ImportQuizDocumentPayload {
+  file: File
+  timeLimit?: number
+  passScore: number
+}
 
 export interface CreateQuestionOptionPayload {
   content: string

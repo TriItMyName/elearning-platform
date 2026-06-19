@@ -4,16 +4,17 @@ import {
   ChevronRight,
   Layers,
   Pencil,
+  Import,
   Plus,
   Trash2,
   Video,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 
-import { chaptersApi } from '@/api/chapters.api'
-import { coursesApi } from '@/api/courses.api'
-import { lessonsApi } from '@/api/lessons.api'
+import { adminApi } from '@/api/admin.api'
 import { quizzesApi } from '@/api/quizzes.api'
+import type { AdminCourseOutletContext } from '@/components/admin/AdminCourseLayout'
 import {
   AdminBadge,
   AdminCard,
@@ -21,6 +22,7 @@ import {
   AdminListItem,
   AdminModal,
   AdminModalFooter,
+  AdminNativeSelect,
   AdminPageHeader,
   AdminPanel,
   AdminPickerRow,
@@ -31,6 +33,7 @@ import {
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
+import { useAdminCourseRoute } from '@/hooks/useAdminCourseRoute'
 import { getErrorMessage } from '@/lib/errors'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -48,7 +51,9 @@ const STEPS: Array<{ id: PickerStep | 'workspace'; label: string }> = [
 
 export function AdminQuizzesPage() {
   const { confirm, ConfirmDialogHost } = useConfirmDialog()
-  const [courseId, setCourseId] = useState<number | null>(null)
+  const { courseId: routeCourseId, isCourseScoped, exitCourseScope } = useAdminCourseRoute()
+  const { course: scopedCourse } = useOutletContext<AdminCourseOutletContext>()
+  const [courseId, setCourseId] = useState<number | null>(routeCourseId)
   const [chapterId, setChapterId] = useState<number | null>(null)
   const [lessonId, setLessonId] = useState<number | null>(null)
   const [quizId, setQuizId] = useState<number | null>(null)
@@ -56,21 +61,33 @@ export function AdminQuizzesPage() {
   const [questionModalOpen, setQuestionModalOpen] = useState(false)
   const [editQuiz, setEditQuiz] = useState<Quiz | null>(null)
   const [editQuestion, setEditQuestion] = useState<Question | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
+
+  const importMutation = useMutation({
+    mutationFn: (file: File) =>
+      quizzesApi.importDocument(courseId!, chapterId!, lessonId!, { file, passScore: 7 }),
+    onSuccess: () => {
+      notify.success('Import quiz từ tài liệu thành công')
+      void queryClient.invalidateQueries({ queryKey: ['quizzes', courseId, chapterId, lessonId] })
+    },
+    onError: (e) => notify.error(getErrorMessage(e)),
+  })
 
   const coursesQuery = useQuery({
-    queryKey: ['courses', 'admin-quizzes'],
-    queryFn: () => coursesApi.list({ page: 0, size: 100 }),
+    queryKey: ['admin', 'courses', 'quiz-picker'],
+    queryFn: () => adminApi.courses.list({ page: 0, size: 100 }),
+    enabled: !isCourseScoped,
   })
 
   const chaptersQuery = useQuery({
-    queryKey: ['chapters', courseId],
-    queryFn: () => chaptersApi.listByCourse(courseId!, { page: 0, size: 100, sortBy: 'orderIndex' }),
+    queryKey: ['admin', 'chapters', courseId],
+    queryFn: () => adminApi.chapters.list({ courseId: courseId!, page: 0, size: 100 }),
     enabled: courseId != null,
   })
 
   const lessonsQuery = useQuery({
-    queryKey: ['lessons', courseId, chapterId],
-    queryFn: () => lessonsApi.listByChapter(courseId!, chapterId!, { page: 0, size: 100, sortBy: 'orderIndex' }),
+    queryKey: ['admin', 'lessons', courseId, chapterId],
+    queryFn: () => adminApi.lessons.list({ chapterId: chapterId!, page: 0, size: 100 }),
     enabled: courseId != null && chapterId != null,
   })
 
@@ -113,7 +130,9 @@ export function AdminQuizzesPage() {
   const quizzes = quizzesQuery.data ?? []
   const questions = questionsQuery.data ?? []
 
-  const selectedCourse = courses.find((c) => c.id === courseId)
+  const selectedCourse = isCourseScoped
+    ? scopedCourse ?? courses.find((c) => c.id === courseId)
+    : courses.find((c) => c.id === courseId)
   const selectedChapter = chapters.find((c) => c.id === chapterId)
   const selectedLesson = lessons.find((l) => l.id === lessonId)
   const selectedQuiz = quizzes.find((q) => q.id === quizId)
@@ -129,16 +148,46 @@ export function AdminQuizzesPage() {
   const stepIndex = STEPS.findIndex((s) => s.id === currentStep)
 
   useEffect(() => {
+    if (routeCourseId != null) setCourseId(routeCourseId)
+  }, [routeCourseId])
+
+  useEffect(() => {
     if (!lessonId || quizzes.length === 0) return
     if (quizId == null || !quizzes.some((q) => q.id === quizId)) {
       setQuizId(quizzes[0].id)
     }
   }, [lessonId, quizzes, quizId])
 
+  useEffect(() => {
+    if (!isCourseScoped) return
+    if (chapters.length === 0) {
+      setChapterId(null)
+      return
+    }
+    if (chapterId == null || !chapters.some((c) => c.id === chapterId)) {
+      setChapterId(chapters[0].id)
+    }
+  }, [isCourseScoped, chapters, chapterId])
+
+  useEffect(() => {
+    if (!isCourseScoped) return
+    if (!chapterId || lessons.length === 0) {
+      setLessonId(null)
+      return
+    }
+    if (lessonId == null || !lessons.some((l) => l.id === lessonId)) {
+      setLessonId(lessons[0].id)
+    }
+  }, [isCourseScoped, chapterId, lessons, lessonId])
+
   const ready = courseId != null && chapterId != null && lessonId != null
 
   const resetFrom = (step: PickerStep) => {
     if (step === 'course') {
+      if (isCourseScoped) {
+        exitCourseScope()
+        return
+      }
       setCourseId(null)
       setChapterId(null)
       setLessonId(null)
@@ -155,35 +204,41 @@ export function AdminQuizzesPage() {
     setQuizId(null)
   }
 
+  const visibleSteps = isCourseScoped ? STEPS.filter((step) => step.id !== 'course') : STEPS
+
   return (
     <div>
-      <AdminPageHeader
-        title="Quiz & câu hỏi"
-        description="Chọn bài học rồi tạo quiz và câu hỏi trắc nghiệm. Luồng: khóa học → chương → bài học → soạn nội dung."
-      />
+      {!isCourseScoped ? (
+        <AdminPageHeader
+          title="Quiz & câu hỏi"
+          description="Chọn bài học rồi tạo quiz và câu hỏi trắc nghiệm. Luồng: khóa học → chương → bài học → soạn nội dung."
+        />
+      ) : null}
 
-      <AdminCard className="mb-6" padding>
-        <AdminStepper steps={STEPS} currentIndex={stepIndex} />
+      {!isCourseScoped ? (
+        <AdminCard className="mb-6" padding>
+          <AdminStepper steps={visibleSteps} currentIndex={Math.max(stepIndex - (isCourseScoped ? 1 : 0), 0)} />
 
-        {currentStep === 'workspace' && selectedCourse && selectedChapter && selectedLesson ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#ececec] pt-4 text-sm">
-            <span className="text-[#6b7280]">Đang soạn:</span>
-            <button type="button" onClick={() => resetFrom('course')} className="font-medium text-[#f05123] hover:underline">
-              {selectedCourse.title}
-            </button>
-            <ChevronRight className="h-3.5 w-3.5 text-[#d1d5db]" />
-            <button type="button" onClick={() => resetFrom('chapter')} className="font-medium text-[#f05123] hover:underline">
-              {selectedChapter.title}
-            </button>
-            <ChevronRight className="h-3.5 w-3.5 text-[#d1d5db]" />
-            <button type="button" onClick={() => resetFrom('lesson')} className="font-medium text-[#f05123] hover:underline">
-              {selectedLesson.title}
-            </button>
-          </div>
-        ) : null}
-      </AdminCard>
+          {currentStep === 'workspace' && selectedCourse && selectedChapter && selectedLesson ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#ececec] pt-4 text-sm">
+              <span className="text-[#6b7280]">Đang soạn:</span>
+              <button type="button" onClick={() => resetFrom('course')} className="font-medium text-[#f05123] hover:underline">
+                {selectedCourse.title}
+              </button>
+              <ChevronRight className="h-3.5 w-3.5 text-[#d1d5db]" />
+              <button type="button" onClick={() => resetFrom('chapter')} className="font-medium text-[#f05123] hover:underline">
+                {selectedChapter.title}
+              </button>
+              <ChevronRight className="h-3.5 w-3.5 text-[#d1d5db]" />
+              <button type="button" onClick={() => resetFrom('lesson')} className="font-medium text-[#f05123] hover:underline">
+                {selectedLesson.title}
+              </button>
+            </div>
+          ) : null}
+        </AdminCard>
+      ) : null}
 
-      {currentStep === 'course' ? (
+      {!isCourseScoped && currentStep === 'course' ? (
         <AdminPickerSection
           title="Bước 1 — Chọn khóa học"
           description="Quiz được gắn vào một bài học cụ thể trong khóa."
@@ -203,14 +258,14 @@ export function AdminQuizzesPage() {
         </AdminPickerSection>
       ) : null}
 
-      {currentStep === 'chapter' && selectedCourse ? (
+      {!isCourseScoped && currentStep === 'chapter' && selectedCourse ? (
         <AdminPickerSection
-          title="Bước 2 — Chọn chương"
+          title={isCourseScoped ? 'Chọn chương' : 'Bước 2 — Chọn chương'}
           description={`Khóa học: ${selectedCourse.title}`}
           loading={chaptersQuery.isLoading}
           isEmpty={chapters.length === 0}
           empty="Khóa này chưa có chương."
-          onBack={() => resetFrom('course')}
+          onBack={isCourseScoped ? undefined : () => resetFrom('course')}
         >
           {chapters.map((chapter) => (
             <AdminPickerRow
@@ -224,7 +279,7 @@ export function AdminQuizzesPage() {
         </AdminPickerSection>
       ) : null}
 
-      {currentStep === 'lesson' && selectedChapter ? (
+      {!isCourseScoped && currentStep === 'lesson' && selectedChapter ? (
         <AdminPickerSection
           title="Bước 3 — Chọn bài học"
           description={`Chương: ${selectedChapter.title}`}
@@ -245,14 +300,85 @@ export function AdminQuizzesPage() {
         </AdminPickerSection>
       ) : null}
 
-      {currentStep === 'workspace' && ready ? (
+      {isCourseScoped && (
+        <AdminCard className="mb-4" padding>
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-[#374151]">Chương</label>
+              <AdminNativeSelect
+                value={chapterId ?? ''}
+                onChange={(e) => {
+                  setChapterId(e.target.value ? Number(e.target.value) : null)
+                  setLessonId(null)
+                  setQuizId(null)
+                }}
+              >
+                <option value="">Chọn chương</option>
+                {chapters.map((chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.title}
+                  </option>
+                ))}
+              </AdminNativeSelect>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-[#374151]">Bài học</label>
+              <AdminNativeSelect
+                value={lessonId ?? ''}
+                onChange={(e) => {
+                  setLessonId(e.target.value ? Number(e.target.value) : null)
+                  setQuizId(null)
+                }}
+                disabled={!chapterId}
+              >
+                <option value="">{chapterId ? 'Chọn bài học' : 'Chọn chương trước'}</option>
+                {lessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.title}
+                  </option>
+                ))}
+              </AdminNativeSelect>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button className="flex-1" disabled={!selectedLesson} onClick={() => setQuizModalOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Tạo quiz
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                disabled={!selectedLesson || importMutation.isPending}
+                onClick={() => importInputRef.current?.click()}
+              >
+                <Import className="mr-1.5 h-4 w-4" />
+                {importMutation.isPending ? 'Đang import...' : 'Import'}
+              </Button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) importMutation.mutate(file)
+                }}
+              />
+            </div>
+          </div>
+        </AdminCard>
+      )}
+
+      {(isCourseScoped ? Boolean(chapterId && lessonId) : currentStep === 'workspace') && ready ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(280px,320px)_1fr]">
           <AdminPanel
             title="Danh sách quiz"
             action={
-              <Button size="sm" onClick={() => setQuizModalOpen(true)}>
-                <Plus className="mr-1 h-3.5 w-3.5" /> Tạo
-              </Button>
+              isCourseScoped ? undefined : (
+                <Button size="sm" onClick={() => setQuizModalOpen(true)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" /> Tạo
+                </Button>
+              )
             }
           >
             {quizzesQuery.isLoading ? (
@@ -296,7 +422,7 @@ export function AdminQuizzesPage() {
                     <span className="font-medium">Quiz #{quiz.id}</span>
                     <span className="flex gap-1.5">
                       <AdminBadge tone="accent">{quiz.timeLimit ?? '∞'} phút</AdminBadge>
-                      <AdminBadge>Đạt {quiz.passScore ?? 0}%</AdminBadge>
+                      <AdminBadge>{quiz.passScore ?? 0} điểm</AdminBadge>
                     </span>
                   </span>
                 </AdminListItem>
@@ -305,29 +431,32 @@ export function AdminQuizzesPage() {
           </AdminPanel>
 
           <div className="space-y-4">
-            {selectedQuiz ? (
+            {isCourseScoped ? null : selectedQuiz ? (
               <AdminCard padding>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold tracking-wide text-[#f05123] uppercase">Quiz đang chọn</p>
                     <h2 className="mt-1 text-lg font-bold text-[#111827]">Quiz #{selectedQuiz.id}</h2>
                     <p className="mt-1 text-sm text-[#6b7280]">
-                      Thời gian {selectedQuiz.timeLimit ?? '∞'} phút · Điểm đạt {selectedQuiz.passScore ?? 0}%
+                      Thời gian {selectedQuiz.timeLimit ?? '∞'} phút · Điểm đạt {selectedQuiz.passScore ?? 0} điểm
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => setEditQuiz(selectedQuiz)}>
-                      <Pencil className="mr-1 h-3.5 w-3.5" /> Sửa cài đặt
-                    </Button>
-                    <Button size="sm" onClick={() => setQuestionModalOpen(true)}>
-                      <Plus className="mr-1 h-3.5 w-3.5" /> Thêm câu hỏi
-                    </Button>
-                  </div>
+                  <Button size="sm" variant="secondary" onClick={() => setEditQuiz(selectedQuiz)}>
+                    <Pencil className="mr-1 h-3.5 w-3.5" /> Sửa cài đặt
+                  </Button>
                 </div>
               </AdminCard>
             ) : null}
 
-            <AdminPanel title={`Câu hỏi (${questions.length})`}>
+            <AdminPanel
+              title={`Câu hỏi (${questions.length})`}
+              action={
+                <Button size="sm" disabled={!quizId} onClick={() => setQuestionModalOpen(true)}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Thêm câu hỏi
+                </Button>
+              }
+            >
               {!quizId ? (
                 <p className="px-4 py-10 text-center text-sm text-[#9ca3af]">Chọn một quiz bên trái.</p>
               ) : questionsQuery.isLoading ? (
@@ -335,9 +464,6 @@ export function AdminQuizzesPage() {
               ) : questions.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <p className="text-sm text-[#6b7280]">Quiz này chưa có câu hỏi.</p>
-                  <Button size="sm" className="mt-3" onClick={() => setQuestionModalOpen(true)}>
-                    <Plus className="mr-1 h-3.5 w-3.5" /> Thêm câu hỏi
-                  </Button>
                 </div>
               ) : (
                 <div className="divide-y divide-[#f3f4f6]">
@@ -479,19 +605,19 @@ function QuizFormModal({
 }) {
   const queryClient = useQueryClient()
   const [timeLimit, setTimeLimit] = useState(String(initial?.timeLimit ?? 30))
-  const [passScore, setPassScore] = useState(String(initial?.passScore ?? 70))
+  const [passScore, setPassScore] = useState(String(initial?.passScore ?? 5))
 
   useEffect(() => {
     if (!open) return
     setTimeLimit(String(initial?.timeLimit ?? 30))
-    setPassScore(String(initial?.passScore ?? 70))
+    setPassScore(String(initial?.passScore ?? 5))
   }, [open, initial])
 
   const mutation = useMutation({
     mutationFn: () => {
       const payload = {
         timeLimit: Number(timeLimit) || undefined,
-        passScore: Number(passScore) || undefined,
+        passScore: Number(passScore) || 0,
       }
       return initial
         ? quizzesApi.update(courseId, chapterId, lessonId, initial.id, payload)
@@ -523,7 +649,7 @@ function QuizFormModal({
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Input label="Thời gian (phút)" type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
-        <Input label="Điểm đạt (%)" type="number" min={0} max={100} value={passScore} onChange={(e) => setPassScore(e.target.value)} />
+        <Input label="Điểm đạt" type="number" min={0} value={passScore} onChange={(e) => setPassScore(e.target.value)} />
       </div>
     </AdminModal>
   )

@@ -46,7 +46,7 @@ export function AdminCategoriesPage() {
     onError: (e) => notify.error(getErrorMessage(e)),
   })
 
-  const items = query.data ?? []
+  const items = query.data?.content ?? []
 
   return (
     <div>

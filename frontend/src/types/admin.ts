@@ -53,6 +53,13 @@ export interface AdminPermission {
   description: string | null
 }
 
+export interface CreatePermissionPayload {
+  name: string
+  description: string
+}
+
+export type UpdatePermissionPayload = CreatePermissionPayload
+
 export interface AssignPermissionsPayload {
   permissionIds: number[]
 }
@@ -70,7 +77,9 @@ export interface CreateCategoryPayload {
 }
 
 export interface UpdateCategoryPayload {
+  id?: number
   name?: string
+  slug?: string
   description?: string
 }
 

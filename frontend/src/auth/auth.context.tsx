@@ -13,7 +13,11 @@ import { refreshAccessToken } from '@/auth/token.refresh'
 import { SESSION_EXPIRED_EVENT, resetSessionExpiredFlag } from '@/auth/session'
 import { tokenService } from '@/auth/token.service'
 import { currentUserQueryKey } from '@/hooks/useAuthMe'
-import { canAccessAdminPanel } from '@/lib/auth-roles'
+import {
+  canAccessAdminPanel,
+  canAccessTeacherPanel,
+  getManagementPath,
+} from '@/lib/auth-roles'
 import { notify } from '@/lib/notify'
 import { queryClient } from '@/lib/query-client'
 import type { AuthUser, LoginCredentials, RegisterPayload, UserRole } from '@/types/auth'
@@ -23,6 +27,8 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
   canAccessAdmin: boolean
+  canAccessTeacher: boolean
+  managementPath: string | null
   login: (credentials: LoginCredentials) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => Promise<void>
@@ -132,6 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const canAccessAdmin = canAccessAdminPanel(user?.roles)
+  const canAccessTeacher = canAccessTeacherPanel(user?.roles)
+  const managementPath = getManagementPath(user?.roles)
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -139,13 +147,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user && tokenService.getRefreshToken()),
       isLoading: isLoading || isBootstrapping,
       canAccessAdmin,
+      canAccessTeacher,
+      managementPath,
       login,
       register,
       logout,
       syncUser,
       hasRole,
     }),
-    [user, isLoading, isBootstrapping, canAccessAdmin, login, register, logout, syncUser, hasRole],
+    [
+      user,
+      isLoading,
+      isBootstrapping,
+      canAccessAdmin,
+      canAccessTeacher,
+      managementPath,
+      login,
+      register,
+      logout,
+      syncUser,
+      hasRole,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

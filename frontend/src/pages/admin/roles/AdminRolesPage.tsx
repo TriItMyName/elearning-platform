@@ -25,13 +25,15 @@ import { Input } from '@/components/ui/Input'
 import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import { getErrorMessage } from '@/lib/errors'
 import { notify } from '@/lib/notify'
-import type { AdminRole } from '@/types/admin'
+import type { AdminPermission, AdminRole } from '@/types/admin'
 
 export function AdminRolesPage() {
   const { confirm, ConfirmDialogHost } = useConfirmDialog()
   const [createOpen, setCreateOpen] = useState(false)
   const [editRole, setEditRole] = useState<AdminRole | null>(null)
   const [permRole, setPermRole] = useState<AdminRole | null>(null)
+  const [createPermissionOpen, setCreatePermissionOpen] = useState(false)
+  const [editPermission, setEditPermission] = useState<AdminPermission | null>(null)
 
   const rolesQuery = useQuery({
     queryKey: ['admin', 'roles'],
@@ -48,6 +50,15 @@ export function AdminRolesPage() {
     mutationFn: (id: number) => adminApi.roles.delete(id),
     onSuccess: () => {
       notify.success('Xóa vai trò thành công')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'roles'] })
+    },
+    onError: (e) => notify.error(getErrorMessage(e)),
+  })
+  const deletePermissionMutation = useMutation({
+    mutationFn: (id: number) => adminApi.permissions.delete(id),
+    onSuccess: () => {
+      notify.success('Xóa quyền thành công')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'permissions'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'roles'] })
     },
     onError: (e) => notify.error(getErrorMessage(e)),
@@ -130,6 +141,66 @@ export function AdminRolesPage() {
         </AdminTableWrap>
       </AdminCard>
 
+      <AdminCard className="mt-6">
+        <div className="flex items-center justify-between gap-3 border-b border-[#f0f0f0] px-5 py-4">
+          <div>
+            <h2 className="font-bold text-[#111827]">Danh mục quyền</h2>
+            <p className="mt-1 text-sm text-[#6b7280]">Tạo và duy trì các quyền có thể gán cho vai trò.</p>
+          </div>
+          <Button size="sm" onClick={() => setCreatePermissionOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" /> Thêm quyền
+          </Button>
+        </div>
+        <AdminTableWrap>
+          <AdminTable>
+            <AdminTableHead>
+              <tr>
+                <AdminTh>Tên quyền</AdminTh>
+                <AdminTh>Mô tả</AdminTh>
+                <AdminTh align="right">Thao tác</AdminTh>
+              </tr>
+            </AdminTableHead>
+            <AdminTableBody>
+              {permissionsQuery.isLoading ? (
+                <AdminEmptyRow colSpan={3} message="Đang tải..." />
+              ) : permissionsQuery.data?.length ? (
+                permissionsQuery.data.map((permission) => (
+                  <AdminTr key={permission.id}>
+                    <AdminTd className="font-mono text-xs font-semibold text-[#111827]">
+                      {permission.name}
+                    </AdminTd>
+                    <AdminTd className="text-[#6b7280]">{permission.description || 'Chưa có mô tả'}</AdminTd>
+                    <AdminTd align="right">
+                      <div className="flex justify-end gap-0.5">
+                        <AdminIconButton title="Sửa quyền" onClick={() => setEditPermission(permission)}>
+                          <Pencil className="h-4 w-4" />
+                        </AdminIconButton>
+                        <AdminIconButton
+                          title="Xóa quyền"
+                          variant="danger"
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: 'Xóa quyền',
+                              description: `Xóa quyền "${permission.name}" khỏi hệ thống?`,
+                              confirmLabel: 'Xóa',
+                            })
+                            if (ok) deletePermissionMutation.mutate(permission.id)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </AdminIconButton>
+                      </div>
+                    </AdminTd>
+                  </AdminTr>
+                ))
+              ) : (
+                <AdminEmptyRow colSpan={3} message="Chưa có quyền nào." />
+              )}
+            </AdminTableBody>
+          </AdminTable>
+        </AdminTableWrap>
+      </AdminCard>
+
       <RoleFormModal
         open={createOpen}
         title="Thêm vai trò"
@@ -153,8 +224,69 @@ export function AdminRolesPage() {
           onClose={() => setPermRole(null)}
         />
       ) : null}
+      {createPermissionOpen ? (
+        <PermissionFormModal open onClose={() => setCreatePermissionOpen(false)} />
+      ) : null}
+      {editPermission ? (
+        <PermissionFormModal
+          open
+          initial={editPermission}
+          onClose={() => setEditPermission(null)}
+        />
+      ) : null}
       <ConfirmDialogHost />
     </div>
+  )
+}
+
+function PermissionFormModal({
+  open,
+  initial,
+  onClose,
+}: {
+  open: boolean
+  initial?: AdminPermission
+  onClose: () => void
+}) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(initial?.name ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const mutation = useMutation({
+    mutationFn: () =>
+      initial
+        ? adminApi.permissions.update(initial.id, { name: name.trim(), description: description.trim() })
+        : adminApi.permissions.create({ name: name.trim(), description: description.trim() }),
+    onSuccess: () => {
+      notify.success(initial ? 'Cập nhật quyền thành công' : 'Tạo quyền thành công')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'permissions'] })
+      onClose()
+    },
+    onError: (error) => notify.error(getErrorMessage(error)),
+  })
+
+  return (
+    <AdminModal
+      open={open}
+      title={initial ? 'Sửa quyền' : 'Thêm quyền'}
+      onClose={onClose}
+      footer={
+        <AdminModalFooter
+          onCancel={onClose}
+          onSubmit={() => mutation.mutate()}
+          isLoading={mutation.isPending}
+          submitDisabled={!name.trim() || !description.trim()}
+        />
+      }
+    >
+      <div className="space-y-4">
+        <Input label="Tên quyền" value={name} onChange={(event) => setName(event.target.value)} />
+        <Input
+          label="Mô tả"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+      </div>
+    </AdminModal>
   )
 }
 
