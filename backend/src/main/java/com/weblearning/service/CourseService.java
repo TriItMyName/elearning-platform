@@ -1,0 +1,44 @@
+package com.weblearning.service;
+
+import com.weblearning.dto.course.CourseResponse;
+import com.weblearning.dto.course.CourseContentResponse;
+import com.weblearning.entity.Course;
+import com.weblearning.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface CourseService {
+    CourseResponse create(Course course);
+
+    Optional<CourseResponse> getById(Long id);
+
+    List<CourseResponse> getAll();
+
+    Page<CourseResponse> getAll(Pageable pageable);
+
+    Page<CourseResponse> getAllForStudent(User student, Pageable pageable);
+
+    CourseResponse update(Long id, Course course);
+
+    void delete(Long id);
+
+    List<CourseResponse> getCoursesByInstructor(User instructor);
+
+    Page<CourseResponse> getCoursesByInstructor(User instructor, Pageable pageable);
+
+    List<CourseResponse> getCoursesByStudent(User student);
+
+    CourseContentResponse getCourseContentForInstructor(Long id, User instructor);
+
+    CourseContentResponse getCourseContentForStudent(Long id, User student);
+
+    CourseResponse createForInstructor(Course course, User instructor, boolean submitForReview);
+
+    CourseResponse updateForInstructor(Long id, Course course, User instructor, boolean submitForReview);
+
+    void deleteForInstructor(Long id, User instructor);
+}
+

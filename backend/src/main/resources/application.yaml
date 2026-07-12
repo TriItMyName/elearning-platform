@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: weblearning
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  datasource:
+    url: jdbc:postgresql://localhost:5432/weblearning_db
+    username: postgres
+    password: 07082004
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+jwt:
+  secret: YYYRJ4jg1Uqdtv237iYYzss18Aaq1BQ0RQ6IjBCt85U
+  expiration: 600000  #10 minutes
+  refresh-expiration: 604800000 #7 days
+
+cloudinary:
+  cloud-name: dd4wtegab
+  api-key: 212492433566429
+  api-secret: o_L3Wn2-mogUzjc3L3DAm7Im_zc
